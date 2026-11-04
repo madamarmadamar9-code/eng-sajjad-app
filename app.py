@@ -13,13 +13,7 @@ st.set_page_config(
 st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
 st.markdown("---")
 
-# 2. تجهيز البيانات التاريخية لأسعار المواد (الأشهر 1 إلى 9)
-materials_list = [
-    "طابوق عادي", "سمنت مقاوم", "حديد شيش", "رمل أسود", 
-    "حصى مكسر", "بورك", "كاشي عادي", "مرمر", 
-    "سيراميك", "أسباغ مائية", "زجاج"
-]
-
+# 2. البيانات التاريخية لأسعار المواد (الأشهر 1 إلى 9)
 data_materials = {
     "الشهر": list(range(1, 10)),
     "طابوق عادي": [155000, 155000, 152000, 152000, 150000, 160000, 165000, 164000, 161000],
@@ -35,8 +29,9 @@ data_materials = {
     "زجاج": [8000, 8000, 9000, 9000, 9000, 11000, 11000, 13000, 13000]
 }
 df_materials_history = pd.DataFrame(data_materials)
+materials_list = [c for c in df_materials_history.columns if c != "الشهر"]
 
-# 3. تجهيز البيانات التاريخية لأجور الكوادر (الأشهر 5 إلى 9) حسب المحافظات
+# 3. البيانات التاريخية لأجور الكوادر (الأشهر 5 إلى 9)
 provinces = ["بغداد", "البصرة", "النجف الأشرف", "كربلاء المقدسة", "أربيل", "سليمانية", "دهوك", "بابل", "ذي قار", "ميسان", "المثنى", "الديوانية", "واسط", "ديالى", "صلاح الدين", "كركوك", "الانبار", "نينوى"]
 
 wages_list = []
@@ -53,8 +48,8 @@ for m in range(5, 10):
         })
 df_wages_history = pd.DataFrame(wages_list)
 
-# 4. دالة مسبقة لحساب التنبؤات لتفادي أي KeyError
-def get_predictions(target_m, target_p):
+# 4. دالة التنبؤ الآمنة لمنع الأخطاء
+def calculate_predictions(target_m, target_p):
     months_num = np.arange(1, 10)
     pred_mat = {}
     for mat in materials_list:
@@ -63,9 +58,13 @@ def get_predictions(target_m, target_p):
         pred_mat[mat] = round(float(np.polyval(poly, target_m)), 0)
         
     prov_wages = df_wages_history[df_wages_history["المحافظة"] == target_p]
+    if len(prov_wages) == 0:
+        prov_wages = df_wages_history[df_wages_history["المحافظة"] == "بغداد"]
+        
     months_w = prov_wages["الشهر"].values
     pred_w = {}
-    for role in ["المهندسون", "العمال الماهرين", "العمال شبه الماهرين", "العمال غير الماهرين"]:
+    roles = ["المهندسون", "العمال الماهرين", "العمال شبه الماهرين", "العمال غير الماهرين"]
+    for role in roles:
         w_vals = prov_wages[role].values
         poly_w = np.polyfit(months_w, w_vals, 1)
         pred_w[role] = round(float(np.polyval(poly_w, target_m)), 0)
@@ -74,14 +73,14 @@ def get_predictions(target_m, target_p):
 
 # 5. التبويبات الشبيهة بشيتات الإكسل
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📋 سجل أسعار المواد", 
-    "👷 سجل أجور الكوادر والعمال", 
-    "🔮 لوحة التنبؤ الذكية (المواد والأجور)", 
-    "📑 جدول الكميات والتكلفة الكلية الشاملة"
+    "📋 شيت 1: سجل أسعار المواد", 
+    "👷 شيت 2: سجل أجور الكوادر", 
+    "🔮 شيت 3: لوحة التنبؤ الذكية", 
+    "📑 شيت 4: جدول الكميات والتكلفة الكلية"
 ])
 
 # ---------------------------------------------------------
-# الشيت الأول: سجل أسعار المواد
+# شيت 1: سجل أسعار المواد
 # ---------------------------------------------------------
 with tab1:
     st.subheader("الذاكرة التاريخية لأسعار المواد الإنشائية (2026)")
@@ -89,38 +88,36 @@ with tab1:
     st.dataframe(df_materials_history, use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------
-# الشيت الثاني: سجل أجور الكوادر
+# شيت 2: سجل أجور الكوادر
 # ---------------------------------------------------------
 with tab2:
     st.subheader("الذاكرة التاريخية لأجور الكوادر (أيار - أيلول 2026)")
     st.markdown("*جدول أجور الكوادر الهندسية والعمالية للأشهر من 5 إلى 9 مخصصة حسب المحافظة*")
     
-    sel_prov_view = st.selectbox("تصفية العرض حسب المحافظة:", ["جميع المحافظات"] + provinces)
-    if sel_prov_view != "جميع المحافظات":
-        df_show_wages = df_wages_history[df_wages_history["المحافظة"] == sel_prov_view]
+    sel_prov = st.selectbox("تصفية العرض حسب المحافظة:", ["جميع المحافظات"] + provinces)
+    if sel_prov != "جميع المحافظات":
+        st.dataframe(df_wages_history[df_wages_history["المحافظة"] == sel_prov], use_container_width=True, hide_index=True)
     else:
-        df_show_wages = df_wages_history
-        
-    st.dataframe(df_show_wages, use_container_width=True, hide_index=True)
+        st.dataframe(df_wages_history, use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------
-# الشيت الثالث: لوحة التنبؤ الذكية
+# شيت 3: لوحة التنبؤ الذكية
 # ---------------------------------------------------------
 with tab3:
     st.subheader("🔮 لوحة التنبؤ الذكية (المواد والأجور)")
     
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
+    col1, col2 = st.columns(2)
+    with col1:
         target_month = st.selectbox("اختر رقم الشهر المستهدف للتنبؤ:", [10, 11, 12], index=0)
-    with col_s2:
-        target_province = st.selectbox("اختر المحافظة للحساب والتنبؤ:", provinces, index=0)
+    with col2:
+        target_province = st.selectbox("اختر المحافظة للتنبؤ الأجور:", provinces, index=0)
         
-    pred_mat_dict, pred_wages_dict = get_predictions(target_month, target_province)
+    pred_mat_dict, pred_wages_dict = calculate_predictions(target_month, target_province)
     
     st.markdown("---")
-    c_t1, c_t2 = st.columns(2)
+    c1, c2 = st.columns(2)
     
-    with c_t1:
+    with c1:
         st.markdown(f"##### أولاً: أسعار المواد المتوقعة (شهر {target_month})")
         df_p_mat = pd.DataFrame({
             "المادة الإنشائية": list(pred_mat_dict.keys()),
@@ -129,7 +126,7 @@ with tab3:
         })
         st.dataframe(df_p_mat, use_container_width=True, hide_index=True)
         
-    with c_t2:
+    with c2:
         st.markdown(f"##### ثانياً: أجور الكوادر المتوقعة ({target_province})")
         df_p_wages = pd.DataFrame({
             "الكوادر": list(pred_wages_dict.keys()),
@@ -140,33 +137,32 @@ with tab3:
 
     st.markdown("---")
     st.markdown("##### 📈 المسار الزمني والمؤشر البياني للتنبؤ")
-    selected_chart_item = st.selectbox("اختر مادة أو عنصر إنشائي للرسم البياني:", materials_list, index=0)
+    selected_item = st.selectbox("اختر عنصر إنشائي أو مادة للتحليل البياني:", materials_list, index=0)
     
-    hist_prices = list(df_materials_history[selected_chart_item].values)
-    pred_price_val = pred_mat_dict[selected_chart_item]
+    hist_p = list(df_materials_history[selected_item].values)
+    pred_p = pred_mat_dict[selected_item]
     
     chart_months = [f"شهر {i}" for i in range(1, 10)] + [f"شهر {target_month} (تنبؤ)"]
-    chart_values = hist_prices + [pred_price_val]
+    chart_vals = hist_p + [pred_p]
     chart_types = ["أسعار مسجلة"] * 9 + ["تنبؤ ذكي"]
     
-    df_chart_data = pd.DataFrame({
+    df_chart = pd.DataFrame({
         "الشهر": chart_months,
-        "السعر (دينار)": chart_values,
+        "السعر (دينار)": chart_vals,
         "نوع البيان": chart_types
     })
     
-    fig = px.line(df_chart_data, x="الشهر", y="السعر (دينار)", color="نوع البيان", title=f"المسار الزمني لأسعار {selected_chart_item}", markers=True)
+    fig = px.line(df_chart, x="الشهر", y="السعر (دينار)", color="نوع البيان", title=f"المسار الزمني وتنبؤ أسعار {selected_item}", markers=True)
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------------
-# الشيت الرابع: جدول الكميات والتكلفة الكلية الشاملة
+# شيت 4: جدول الكميات والتكلفة الكلية
 # ---------------------------------------------------------
 with tab4:
     st.subheader("📑 جدول الكميات والتكلفة الكلية الشاملة للمشروع")
-    st.markdown("*مربوط كلياً بأسعار المواد والأجور المستقبليّة المحسوبة في لوحة التنبؤ*")
+    st.markdown("*مربوط آلياً بأسعار المواد والأجور المستقبليّة المحسوبة في لوحة التنبؤ*")
     
-    # ضمان جلب قيم التنبؤ بشكل آمن
-    pred_mat_dict, pred_wages_dict = get_predictions(10, "بغداد")
+    p_mat_sec4, p_wages_sec4 = calculate_predictions(10, "بغداد")
     
     with st.expander("📐 مدخلات الأبعاد الهندسية للمشروع", expanded=True):
         col_in1, col_in2, col_in3 = st.columns(3)
@@ -182,7 +178,6 @@ with tab4:
             parapet_h = st.number_input("ارتفاع الستارة (متر)", value=1.2)
             excav_d = st.number_input("عمق الحفر (متر)", value=1.5)
 
-    # حساب الكميات الإنشائية
     vol_excav = l_b * w_b * excav_d
     vol_raft = l_b * w_b * raft_t
     vol_cols = cols_n * (0.3 * 0.4 * h_b)
@@ -196,15 +191,14 @@ with tab4:
     finish_area = wall_area * 2
     floor_area = l_b * w_b
 
-    # الكلف المربوطة بالتنبؤ
-    p_steel = pred_mat_dict["حديد شيش"]
-    p_cement = pred_mat_dict["سمنت مقاوم"]
-    p_brick = pred_mat_dict["طابوق عادي"]
-    p_tile = pred_mat_dict["كاشي عادي"]
-    p_paint = pred_mat_dict["أسباغ مائية"]
+    p_steel = p_mat_sec4["حديد شيش"]
+    p_cement = p_mat_sec4["سمنت مقاوم"]
+    p_brick = p_mat_sec4["طابوق عادي"]
+    p_tile = p_mat_sec4["كاشي عادي"]
+    p_paint = p_mat_sec4["أسباغ مائية"]
     
-    w_eng = pred_wages_dict["المهندسون"]
-    w_skilled = pred_wages_dict["العمال الماهرين"]
+    w_eng = p_wages_sec4["المهندسون"]
+    w_skilled = p_wages_sec4["العمال الماهرين"]
     
     cost_excav = vol_excav * 8000
     cost_conc = total_concrete * (p_cement * 0.35 + 35000)
@@ -218,7 +212,7 @@ with tab4:
 
     grand_total_project = cost_materials_total + cost_labor_total
 
-    boq_master_df = pd.DataFrame({
+    boq_df = pd.DataFrame({
         "ت": [1, 2, 3, 4, 5, 6, 7],
         "مرحلة العمل": [
             "حفر الأساسات والتأسيس",
@@ -253,5 +247,5 @@ with tab4:
 
     st.markdown("---")
     st.markdown("##### 📜 جدول الكميات والتكلفة الشاملة للمشروع (BoQ)")
-    st.table(boq_master_df)
+    st.table(boq_df)
     st.success(f"💰 **الكلفة الكلية التقديرية للمشروع الكامل: {grand_total_project:,.0f} دينار عراقي**")
