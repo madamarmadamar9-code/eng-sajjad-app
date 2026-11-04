@@ -13,7 +13,7 @@ st.set_page_config(
 st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
 st.markdown("---")
 
-# 2. سجل أسعار المواد التاريخية (الأشهر 1 إلى 9)
+# 2. البيانات التاريخية لأسعار المواد (الأشهر 1 إلى 9)
 data_materials = {
     "الشهر": list(range(1, 10)),
     "طابوق عادي": [155000, 155000, 152000, 152000, 150000, 160000, 165000, 164000, 161000],
@@ -31,7 +31,7 @@ data_materials = {
 df_materials_history = pd.DataFrame(data_materials)
 materials_list = [c for c in df_materials_history.columns if c != "الشهر"]
 
-# 3. سجل أجور الكوادر (الأشهر 5 إلى 9)
+# 3. البيانات التاريخية لأجور الكوادر (الأشهر 5 إلى 9)
 provinces = ["بغداد", "البصرة", "النجف", "كربلاء", "أربيل", "سليمانية", "دهوك", "بابل", "ذي قار", "ميسان", "المثنى", "الديوانية", "واسط", "ديالى", "صلاح الدين", "كركوك", "الانبار", "نينوى"]
 
 wages_list = []
@@ -47,7 +47,7 @@ for m in range(5, 10):
         })
 df_wages_history = pd.DataFrame(wages_list)
 
-# 4. دالة التنبؤ الآمنة والمحصنة مضادة للأخطاء
+# 4. دالة التنبؤ الآمنة لمنع الأخطاء البرمجية
 def get_safe_predictions(t_month, t_prov):
     months_num = np.array(df_materials_history["الشهر"].values)
     pred_mat = {}
@@ -70,7 +70,7 @@ def get_safe_predictions(t_month, t_prov):
         
     return pred_mat, pred_w
 
-# 5. التبويبات الرئيسية
+# 5. التبويبات الرئيسية (الشيتات الأربعة)
 tab1, tab2, tab3, tab4 = st.tabs([
     "📋 شيت 1: سجل أسعار المواد", 
     "👷 شيت 2: سجل أجور الكوادر", 
@@ -79,7 +79,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ---------------------------------------------------------
-# شيت 1
+# شيت 1: سجل أسعار المواد
 # ---------------------------------------------------------
 with tab1:
     st.subheader("الذاكرة التاريخية لأسعار المواد الإنشائية (2026)")
@@ -87,7 +87,7 @@ with tab1:
     st.dataframe(df_materials_history, use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------
-# شيت 2
+# شيت 2: سجل أجور الكوادر
 # ---------------------------------------------------------
 with tab2:
     st.subheader("الذاكرة التاريخية لأجور الكوادر (أيار - أيلول 2026)")
@@ -100,7 +100,7 @@ with tab2:
         st.dataframe(df_wages_history, use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------
-# شيت 3
+# شيت 3: لوحة التنبؤ الذكية
 # ---------------------------------------------------------
 with tab3:
     st.subheader("🔮 لوحة التنبؤ الذكية (المواد والأجور)")
@@ -155,7 +155,7 @@ with tab3:
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------------
-# شيت 4
+# شيت 4: جدول الكميات والتكلفة الكلية (مُحدث بالرباط المائي العلوي)
 # ---------------------------------------------------------
 with tab4:
     st.subheader("📑 جدول الكميات والتكلفة الكلية الشاملة للمشروع")
@@ -171,25 +171,36 @@ with tab4:
             h_b = st.number_input("ارتفاع الجدران (متر)", value=3.2)
         with col_in2:
             raft_t = st.number_input("سمك خرسانة الرافت (متر)", value=0.6)
-            roof_t = st.number_input("سمك خرسانة السقف (متر)", value=0.2)
+            roof_t = st.number_input("سمك خرسانة السقف (متر)", value=0.25)
             cols_n = st.number_input("عدد الدينك (الأعمدة)", value=16)
         with col_in3:
-            parapet_h = st.number_input("ارتفاع الستارة (متر)", value=1.2)
-            excav_d = st.number_input("عمق الحفر (متر)", value=1.5)
+            parapet_h = st.number_input("ارتفاع الستارة (متر)", value=1.38)
+            excav_d = st.number_input("عمق الحفر (متر)", value=1.62)
 
+    # 1. حسابات الحفر والخرسانة والرباط المائي العلوي
     vol_excav = l_b * w_b * excav_d
     vol_raft = l_b * w_b * raft_t
     vol_cols = cols_n * (0.3 * 0.4 * h_b)
     vol_roof = l_b * w_b * roof_t
-    vol_parapet = (2 * (l_b + w_b)) * 0.25 * parapet_h
-    total_concrete = vol_raft + vol_cols + vol_roof + vol_parapet
     
+    # خرسانة الرباط المائي العلوي للستارة (المحيط × مقطع الرباط الخرساني)
+    vol_coping = (2 * (l_b + w_b)) * 0.25 * 0.15 
+    
+    # إجمالي الخرسانة المسلحة (أساس + أعمدة + سقف + رباط مائي علوي)
+    total_concrete = vol_raft + vol_cols + vol_roof + vol_coping
+    
+    # حديد التسليح الكلي الشامل للرباط المائي والهيكل
     steel_tons = (total_concrete * 120) / 1000.0
+
+    # 2. حسابات الطابوق والإنهاءات
     wall_area = (2 * (l_b + w_b)) * h_b
-    total_bricks = (wall_area * 450) + ((2 * (l_b + w_b)) * parapet_h * 450)
+    parapet_wall_area = (2 * (l_b + w_b)) * parapet_h
+    total_bricks = ((wall_area + parapet_wall_area) * 450)
+    
     finish_area = wall_area * 2
     floor_area = l_b * w_b
 
+    # 3. الأسعار والأجور المربوطة بالتنبؤ
     p_steel = p_mat_sec4["حديد شيش"]
     p_cement = p_mat_sec4["سمنت مقاوم"]
     p_brick = p_mat_sec4["طابوق عادي"]
@@ -211,11 +222,12 @@ with tab4:
 
     grand_total_project = cost_materials_total + cost_labor_total
 
+    # 4. جدول BoQ المعتمد بالتسمية الدقيقة
     boq_df = pd.DataFrame({
         "ت": [1, 2, 3, 4, 5, 6, 7],
         "مرحلة العمل": [
             "حفر الأساسات والتأسيس",
-            "صب الخرسانة المسلحة (أساس + أعمدة + سقف)",
+            "صب الخرسانة المسلحة (أساس + أعمدة + سقف + رباط مائي)",
             f"حديد التسليح الإجمالي ({steel_tons:.2f} طن)",
             "البناء بالطابوق للجدران والستارة",
             "تغليف الأرضيات بالكاشي",
