@@ -2,235 +2,221 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 
-# ==========================================
-# 1. إعدادات الصفحة الأساسية
-# ==========================================
-st.set_page_config(page_title="الحاسبة الهندسية الشاملة - م. سجاد علي", layout="wide")
+# 1. إعدادات الصفحة الشاملة
+st.set_page_config(page_title="المنظومة الهندسية الشاملة - م. سجاد", layout="wide")
 
-# CSS لدعم اللغة العربية وتنسيق الواجهة
-st.markdown("""
-    <style>
-        body, [class*="css"] { font-family: 'Tajawal', sans-serif; direction: rtl; text-align: right; }
-        .stButton>button { width: 100%; background-color: #2E86C1; color: white; border-radius: 8px; }
-        .stButton>button:hover { background-color: #1B4F72; }
-        .total-box { background-color: #D4EFDF; padding: 20px; border-radius: 10px; border: 2px solid #27AE60; text-align: center; }
-    </style>
-""", unsafe_allow_html=True)
+st.title("🏗️ المنظومة الهندسية الشاملة لحساب الكميات والتسعير والتنبؤ بالأسعار")
+st.subheader("إعداد وإشراف: المهندس سجاد علي")
+st.markdown("---")
 
-st.title("🏗️ الحاسبة الهندسية الشاملة (الكميات، التكاليف، والتنبؤ)")
-st.markdown("إعداد وإشراف: المهندس سجاد علي")
-
-# ==========================================
-# 2. قاعدة بيانات الأسعار (مستوحاة من النشرة العراقية)
-# ==========================================
-# يمكنك لاحقاً تبديل هذا بـ pd.read_excel('prices.xlsx')
-PRICES_DB = {
-    "خرسانة جاهزة (متر مكعب)": 110000,
-    "حديد تسليح (طن)": 980000,
-    "طابوق (ألف طابوقة)": 180000,
-    "رمل (متر مكعب)": 150000, # سعر اللوري تقريباً
-    "حصى (متر مكعب)": 170000,
-    "سمنت (طن)": 110000,
-    "كاشي أو سيراميك (متر مربع)": 12000,
-    "لبخ - مواد وعمل (متر مربع)": 8000,
-    "صبغ - مواد وعمل (متر مربع)": 6000,
-    "تأسيسات كهربائية (نقطة)": 15000
-}
-
-# ==========================================
-# 3. نظام التخزين (Session State) لجدول الكميات
-# ==========================================
-if 'project_items' not in st.session_state:
-    st.session_state.project_items = []
-
-def add_to_project(item_name, quantity, unit, unit_price):
-    total = quantity * unit_price
-    st.session_state.project_items.append({
-        "الفقرة": item_name,
-        "الكمية": round(quantity, 2),
-        "الوحدة": unit,
-        "سعر الوحدة (دينار)": unit_price,
-        "الكلفة الإجمالية (دينار)": total
-    })
-    st.success(f"✅ تمت إضافة {item_name} بنجاح إلى جدول الكميات!")
-
-# ==========================================
-# 4. تقسيم الواجهة إلى أقسام (Tabs)
-# ==========================================
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📐 حساب الكميات (إضافة للمشروع)", 
-    "📊 جدول الكميات والكلفة الكلية", 
-    "📈 التنبؤ بأسعار المواد (AI)", 
-    "👷‍♂️ طاقم العمالة"
+# إنشاء التبويبات الرئيسية
+tab1, tab2, tab3 = st.tabs([
+    "📐 1. حساب الكميات والأبعاد الهندسية", 
+    "📋 2. جدول الكميات المجمع (BoQ) والتكلفة الكلية", 
+    "📈 3. نشرة الأسعار العراقية (12 شهر) والتنبؤ الآلي"
 ])
 
 # ---------------------------------------------------------
-# القسم الأول: حساب الكميات الذكي بناءً على الأبعاد
+# التبويب الأول: حساب الكميات والأبعاد
 # ---------------------------------------------------------
 with tab1:
-    st.header("حساب الكميات الهندسية")
-    category = st.selectbox("اختر نوع العمل:", 
-                            ["الأعمال الخرسانية (أساسات، أعمدة، سقوف)", 
-                             "أعمال حديد التسليح", 
-                             "أعمال الإنهاءات (لبخ، صبغ، سيراميك/كاشي)"])
+    st.header("أولاً: إدخال الأبعاد الهندسية وحساب الكميات التفصيلية")
     
+    col_a, col_b, col_c = st.columns(3)
+    
+    with col_a:
+        st.subheader("⛏️ 1. الحفر والأساسات")
+        excav_len = st.number_input("طول موقع الحفر (متر)", min_value=1.0, value=15.0)
+        excav_wid = st.number_input("عرض موقع الحفر (متر)", min_value=1.0, value=10.0)
+        excav_dep = st.number_input("عمق الحفر (متر)", min_value=0.2, value=1.5)
+        
+        raft_thick = st.number_input("سمك خرسانة الأساس / الرافت (متر)", min_value=0.1, value=0.6)
+        
+    with col_b:
+        st.subheader("🏛️ 2. الأعمدة والجسور والسقوف والستاير")
+        cols_count = st.number_input("عدد الأعمدة (الدينك)", min_value=1, value=16)
+        col_w = st.number_input("عرض العمود (متر)", value=0.3)
+        col_l = st.number_input("طول العمود (متر)", value=0.4)
+        col_h = st.number_input("ارتفاع العمود (متر)", value=3.2)
+        
+        roof_thick = st.number_input("سمك خرسانة السقف (متر)", min_value=0.1, value=0.2)
+        parapet_height = st.number_input("ارتفاع الستارة السطحية (متر)", min_value=0.5, value=1.2)
+        
+    with col_c:
+        st.subheader("🎨 3. البناء والإنهاءات والكهرباء")
+        wall_height = st.number_input("ارتفاع الجدران صافي (متر)", min_value=1.0, value=3.2)
+        tile_size = st.selectbox("قياس الكاشي/السيراميك", ["60x60 سم", "50x50 سم", "40x40 سم"])
+        elec_points = st.number_input("عدد النقاط الكهربائية التقديري", min_value=5, value=45)
+        sanitary_points = st.number_input("عدد التأسيسات الصحية", min_value=1, value=8)
+
+    # *** الحسابات الهندسية الرياضية المباشرة ***
+    # كميات الحفر والخرسانات
+    excav_vol = excav_len * excav_wid * excav_dep # حجم الحفر م3
+    raft_vol = excav_len * excav_wid * raft_thick # خرسانة الأساس م3
+    cols_vol = cols_count * (col_w * col_l * col_h) # خرسانة الدينك م3
+    roof_vol = excav_len * excav_wid * roof_thick # خرسانة السقف م3
+    parapet_len = 2 * (excav_len + excav_wid)
+    parapet_vol = parapet_len * 0.25 * parapet_height # خرسانة أو بناء الستارة م3
+    
+    total_concrete_vol = raft_vol + cols_vol + roof_vol + parapet_vol
+
+    # حديد التسليح بالأقطار
+    steel_12mm = total_concrete_vol * 35 / 1000.0  # طن (للأسقف والرباطات)
+    steel_16mm = total_concrete_vol * 55 / 1000.0  # طن (للأعمدة والجسور)
+    steel_25mm = total_concrete_vol * 30 / 1000.0  # طن (للأساسات)
+    total_steel_tons = steel_12mm + steel_16mm + steel_25mm
+
+    # الطابوق والإنهاءات
+    wall_area = (2 * (excav_len + excav_wid)) * wall_height
+    total_bricks = (wall_area * 450) + (parapet_len * parapet_height * 450) # عدد الطابوق الشامل
+    
+    plaster_area = wall_area * 2  # لبخ داخلي وخارجي
+    paint_area = plaster_area      # صبغ للجدران
+    floor_area = excav_len * excav_wid # مساحة الكاشي م2
+    
+    # حساب عدد الكاشي
+    tile_area_m2 = 0.36 if tile_size == "60x60 سم" else (0.25 if tile_size == "50x50 سم" else 0.16)
+    total_tiles_count = int(floor_area / tile_area_m2)
+
     st.markdown("---")
+    st.success("✅ **تم حساب جميع الكميات الإنشائية والإنهاءات بنجاح!**")
     
-    # 1. الخرسانة
-    if category == "الأعمال الخرسانية (أساسات، أعمدة، سقوف)":
-        st.subheader("حساب حجم الخرسانة")
-        col1, col2, col3 = st.columns(3)
-        length = col1.number_input("الطول الكلي (متر)", min_value=0.0, value=10.0)
-        width = col2.number_input("العرض الكلي (متر)", min_value=0.0, value=10.0)
-        thickness = col3.number_input("السُمك أو الارتفاع (متر)", min_value=0.0, value=0.2) # 20 سم للأساس مثلاً
-        
-        volume = length * width * thickness
-        st.info(f"حجم الخرسانة المطلوب = {volume:.2f} متر مكعب")
-        
-        if st.button("إضافة الخرسانة للمشروع"):
-            add_to_project("خرسانة جاهزة", volume, "متر مكعب", PRICES_DB["خرسانة جاهزة (متر مكعب)"])
-
-    # 2. الحديد
-    elif category == "أعمال حديد التسليح":
-        st.subheader("حساب كمية الحديد")
-        vol_concrete = st.number_input("أدخل حجم الخرسانة (متر مكعب):", min_value=0.0, value=20.0)steel_ratio = st.slider("نسبة التسليح (كغم/متر مكعب) حسب المخطط:", 80, 200, 100)
-        steel_type = st.selectbox("نوع القطر المستخدم أغلب شيء:", ["أبو 12 ملم", "أبو 16 ملم (شائع للأساسات)", "أبو 20 ملم"])
-        
-        total_steel_kg = vol_concrete * steel_ratio
-        total_steel_ton = total_steel_kg / 1000
-        
-        st.info(f"الكمية المطلوبة = {total_steel_ton:.2f} طن (من حديد {steel_type})")
-        
-        if st.button("إضافة الحديد للمشروع"):
-            add_to_project(f"حديد تسليح ({steel_type})", total_steel_ton, "طن", PRICES_DB["حديد تسليح (طن)"])
-
-    # 3. الإنهاءات
-    elif category == "أعمال الإنهاءات (لبخ، صبغ، سيراميك/كاشي)":
-        st.subheader("حساب مساحات الإنهاءات")
-        finishing_type = st.selectbox("اختر الفقرة:", ["لبخ", "صبغ", "كاشي أو سيراميك"])
-        
-        col1, col2 = st.columns(2)
-        l = col1.number_input("الطول الإجمالي للجدران/الأرضية (متر)", min_value=0.0, value=12.0)
-        h = col2.number_input("الارتفاع أو العرض (متر)", min_value=0.0, value=3.0)
-        
-        area = l * h
-        st.info(f"المساحة السطحية المطلوبة = {area:.2f} متر مربع")
-        
-        if st.button(f"إضافة {finishing_type} للمشروع"):
-            item_key = f"{finishing_type} - مواد وعمل (متر مربع)" if finishing_type in ["لبخ", "صبغ"] else "كاشي أو سيراميك (متر مربع)"
-            add_to_project(finishing_type, area, "متر مربع", PRICES_DB[item_key])
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("حجم الحفر الكلي", f"{excav_vol:.1f} م³")
+    m2.metric("حجم الخرسانة الإجمالي", f"{total_concrete_vol:.1f} م³")
+    m3.metric("حديد التسليح الإجمالي", f"{total_steel_tons:.2f} طن")
+    m4.metric("عدد الكاشي المطلوب", f"{total_tiles_count:,} قطعة")
 
 # ---------------------------------------------------------
-# القسم الثاني: جدول الكميات (BoQ) والكلفة الكلية
+# التبويب الثاني: BoQ والتكلفة الكلية
 # ---------------------------------------------------------
 with tab2:
-    st.header("جدول الكميات المُسعّر (BoQ)")
+    st.header("ثانياً: جدول الكميات المجمع (BoQ) وحساب الكلفة الكلية")
     
-    if len(st.session_state.project_items) > 0:
-        df_project = pd.DataFrame(st.session_state.project_items)
-        
-        # تنسيق الأرقام بوجود فوارز
-        st.dataframe(df_project.style.format({"سعر الوحدة (دينار)": "{:,.0f}", "الكلفة الإجمالية (دينار)": "{:,.0f}"}), use_container_width=True)
-        
-        total_materials_cost = df_project["الكلفة الإجمالية (دينار)"].sum()
-        
-        st.markdown(f"""
-        <div class="total-box">
-            <h3>إجمالي كلفة المواد المُضافة للمشروع</h3>
-            <h1>{total_materials_cost:,.0f} دينار عراقي</h1>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🗑️ مسح كل البيانات والبدء من جديد"):
-            st.session_state.project_items = []
-            st.rerun()
+    # إدخال أسعار المواد المباشرة أو الاعتماد على الشهر
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        st.subheader("💵 أسعار الفقرات (يمكن تعديلها يدوياً)")
+        p_excav = st.number_input("سعر حفر المتر المكعب (دينار)", value=8000)
+        p_conc = st.number_input("سعر المتر المكعب للخرسانة الجاهزة (دينار)", value=110000)
+        p_steel = st.number_input("معدل سعر طن حديد التسليح (دينار)", value=980000)
+        p_brick = st.number_input("سعر ألف طابوقة (دينار)", value=180000)
+        p_tile = st.number_input("سعر المتر المربع للكاشي (دينار)", value=14000)
+        p_plaster = st.number_input("سعر م2 اللبخ والصبغ (دينار)", value=9000)
+        p_elec = st.number_input("كلفة النقطة الكهربائية (دينار)", value=15000)
+        p_sanitary = st.number_input("كلفة نقطة التأسيس الصحي (دينار)", value=35000)
+
+    with col_p2:
+        st.subheader("👷 طاقم العمالة والتشغيل")
+        labor_option = st.radio("طريقة حساب أجور العمالة", ["نسبة مئوية من كلفة المواد", "حساب حسب أيام طاقم العمل"])
+        if labor_option == "نسبة مئوية من كلفة المواد":
+            labor_pct = st.number_input("نسبة أجور العمل والآليات (%)", min_value=5.0, value=22.0)
+            custom_labor = None
+        else:
+            days = st.number_input("عدد أيام تنفيذ المشروع المتوقعة", value=60)
+            daily_cost = st.number_input("كلفة طاقم العمالة اليومية (دينار)", value=180000)
+            custom_labor = days * daily_cost
+
+    # حساب التكاليف لكل فقرة
+    cost_excav = excav_vol * p_excav
+    cost_conc = total_concrete_vol * p_conc
+    cost_steel = total_steel_tons * p_steel
+    cost_brick = (total_bricks / 1000.0) * p_brick
+    cost_tile = floor_area * p_tile
+    cost_plaster = plaster_area * p_plaster
+    cost_elec = elec_points * p_elec
+    cost_sanitary = sanitary_points * p_sanitary
+
+    total_mat_cost = cost_excav + cost_conc + cost_steel + cost_brick + cost_tile + cost_plaster + cost_elec + cost_sanitary
+    
+    if custom_labor is not None:
+        labor_cost = custom_labor
     else:
-        st.warning("جدول الكميات فارغ. اذهب إلى قسم (حساب الكميات) لإضافة المواد للمشروع.")
+        labor_cost = total_mat_cost * (labor_pct / 100.0)
+
+    grand_total_cost = total_mat_cost + labor_cost
+
+    # بناء جدول الكميات BoQ المتكامل
+    boq_data = {
+        "ت": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "فقرة العمل": [
+            "أعمال الحفر والتأسيس",
+            "الخرسانة المسلحة (أساس + أعمدة + سقف + ستارة)",
+            f"حديد التسليح (12mm: {steel_12mm:.1f}t | 16mm: {steel_16mm:.1f}t | 25mm: {steel_25mm:.1f}t)",
+            "البناء بالطابوق المحلي للجدران والستارة",
+            f"تغليف الأرضيات بالكاشي ({tile_size})",
+            "أعمال اللبخ والصبغ الداخلي والخارجي",
+            "التأسيسات الكهربائية",
+            "التأسيسات الصحية والسباكة",
+            "أجور طاقم العمالة والتشغيل والآليات"
+        ],
+        "الكمية": [
+            f"{excav_vol:.1f} م³",
+            f"{total_concrete_vol:.1f} م³",
+            f"{total_steel_tons:.2f} طن",
+            f"{total_bricks:,.0f} طابوقة",
+            f"{floor_area:.1f} م² ({total_tiles_count:,} قطعة)",
+            f"{plaster_area:.1f} م²",
+            f"{elec_points} نقطة",
+            f"{sanitary_points} نقطة",
+            "شامل التنفيذ"
+        ],
+        "السعر المفرد (دينار)": [f"{p_excav:,}", f"{p_conc:,}", f"{p_steel:,}", f"{p_brick:,}", f"{p_tile:,}", f"{p_plaster:,}", f"{p_elec:,}", f"{p_sanitary:,}", "-"],
+        "الكلفة الإجمالية (دينار)": [
+            f"{cost_excav:,.0f}", f"{cost_conc:,.0f}", f"{cost_steel:,.0f}", 
+            f"{cost_brick:,.0f}", f"{cost_tile:,.0f}", f"{cost_plaster:,.0f}", 
+            f"{cost_elec:,.0f}", f"{cost_sanitary:,.0f}", f"{labor_cost:,.0f}"
+        ]
+    }
+
+    st.markdown("### 📜 جدول الكميات الشامل والنهائي للمشروع (BoQ)")
+    st.table(pd.DataFrame(boq_data))
+    
+    st.markdown("---")
+    st.metric("🏆 الكلفة الإجمالية التقديرية الكاملة للمشروع", f"{grand_total_cost:,.0f} دينار عراقي")
 
 # ---------------------------------------------------------
-# القسم الثالث: التنبؤ الذكي بالأسعار (AI Forecasting)
+# التبويب الثالث: نشرة الأسعار والتنبؤ
 # ---------------------------------------------------------
 with tab3:
-    st.header("📈 تحليل اتجاهات السوق والتنبؤ بأسعار النشرة العراقية")
-    st.write("يقوم البرنامج بتحليل أسعار الأشهر التسعة الأولى باستخدام الانحدار الخطي (Linear Regression) للتنبؤ بالربع الأخير من السنة.")
+    st.header("ثالثاً: نشرة الأسعار العراقية (12 شهراً) والتنبؤ الذكي للربع الأخير")
     
-    material_to_predict = st.selectbox("اختر المادة لتحليل أسعارها:", ["حديد تسليح (طن)", "سمنت (طن)", "طابوق (ألف طابوقة)"])
+    selected_mat = st.selectbox("اختر المادة للتحليل والتنبؤ", ["حديد التسليح (طن)", "الخرسانة الجاهزة (م3)", "الطابوق (ألف)"])
     
-    # بيانات افتراضية للأشهر 1 إلى 9 (يمكنك تعديلها بناءً على النشرة الحقيقية)
-    months = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    # أشهر السنة الـ 12
+    all_months = ["شهر 1", "شهر 2", "شهر 3", "شهر 4", "شهر 5", "شهر 6", "شهر 7", "شهر 8", "شهر 9", "شهر 10 (تنبؤ)", "شهر 11 (تنبؤ)", "شهر 12 (تنبؤ)"]
     
-    if material_to_predict == "حديد تسليح (طن)":
-        historical_prices = np.array([950000, 955000, 960000, 975000, 970000, 985000, 990000, 1000000, 980000])
-    elif material_to_predict == "سمنت (طن)":
-        historical_prices = np.array([105000, 106000, 106000, 107000, 108000, 109000, 110000, 110000, 111000])
+    # بيانات النشرة لـ 9 أشهر فعلية
+    months_num = np.arange(1, 10)
+    if selected_mat == "حديد التسليح (طن)":
+        actual_prices = [910000, 920000, 915000, 930000, 945000, 950000, 960000, 970000, p_steel]
+    elif selected_mat == "الخرسانة الجاهزة (م3)":
+        actual_prices = [102000, 104000, 105000, 105000, 108000, 108000, 110000, 110000, p_conc]
     else:
-        historical_prices = np.array([170000, 172000, 175000, 175000, 178000, 180000, 182000, 180000, 185000])
-    
-    # خوارزمية التنبؤ (Linear Regression)
-    z = np.polyfit(months, historical_prices, 1) # حساب الميل والتقاطع
-    p = np.poly1d(z)
-    
-    future_months = np.array([10, 11, 12])future_prices = p(future_months)
-    
-    # دمج البيانات للرسم
-    all_months = np.concatenate((months, future_months))
-    all_prices = np.concatenate((historical_prices, future_prices))
-    status = ['فعلي (النشرة)']*9 + ['تنبؤ ذكي (AI)']*3
-    
-    df_pred = pd.DataFrame({"الشهر": all_months, "السعر (دينار)": all_prices, "الحالة": status})
-    
-    # رسم المخطط البياني
-    fig = px.line(df_pred, x="الشهر", y="السعر (دينار)", color="الحالة", markers=True,
-                  title=f"منحنى الأسعار والتنبؤ لمادة: {material_to_predict}",
-                  color_discrete_map={"فعلي (النشرة)": "blue", "تنبؤ ذكي (AI)": "red"})
-    
-    fig.update_layout(xaxis=dict(tickmode='linear', tick0=1, dtick=1))
+        actual_prices = [160000, 162000, 165000, 168000, 170000, 172000, 175000, 178000, p_brick]
+
+    # خوارزمية التنبؤ للأشهر 10 و 11 و 12
+    poly = np.polyfit(months_num, actual_prices, 1)
+    future_months_num = np.array([10, 11, 12])
+    pred_prices = np.polyval(poly, future_months_num)
+
+    full_prices = list(actual_prices) + list(pred_prices)
+    types = ["أسعار مسجلة بالشرة"] * 9 + ["تنبؤ ذكي (مستقبلي)"] * 3
+
+    df_price_chart = pd.DataFrame({
+        "الشهر": all_months,
+        "السعر (دينار)": full_prices,
+        "نوع السعر": types
+    })
+
+    # رسم المخطط التفاعلي
+    fig = px.line(
+        df_price_chart, x="الشهر", y="السعر (دينار)", color="نوع السعر",
+        title=f"📈 المسار السعري ونسبة التنبؤ لمادة {selected_mat} على مدار 12 شهراً",
+        markers=True, line_shape="spline"
+    )
     st.plotly_chart(fig, use_container_width=True)
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("تنبؤ شهر 10", f"{future_prices[0]:,.0f} د.ع")
-    col2.metric("تنبؤ شهر 11", f"{future_prices[1]:,.0f} د.ع")
-    col3.metric("تنبؤ شهر 12", f"{future_prices[2]:,.0f} د.ع")
 
-# ---------------------------------------------------------
-# القسم الرابع: طاقم العمالة
-# ---------------------------------------------------------
-with tab4:
-    st.header("تحديد كلفة طاقم العمالة")
-    days = st.number_input("عدد أيام العمل المقدرة للمشروع:", min_value=1, value=30)
-    
-    col1, col2 = st.columns(2)
-    engineers = col1.number_input("عدد المهندسين (80,000 د.ع/يوم)", value=1)
-    skilled_labor = col2.number_input("عدد العمال المهرة - خلفة (50,000 د.ع/يوم)", value=2)
-    unskilled_labor = col1.number_input("عدد العمال غير المهرة (25,000 د.ع/يوم)", value=4)
-    guards = col2.number_input("عدد الحراس (15,000 د.ع/يوم)", value=1)
-    
-    daily_cost = (engineers * 80000) + (skilled_labor * 50000) + (unskilled_labor * 25000) + (guards * 15000)
-    total_labor_cost = daily_cost * days
-    
-    st.info(f"إجمالي كلفة العمالة لمدة {days} يوم = {total_labor_cost:,.0f} دينار عراقي")
-
-# ==========================================
-# الخلاصة الكلية بأسفل التطبيق
-# ==========================================
-st.markdown("---")
-st.header("💰 الخلاصة والتكلفة الاستثمارية الكلية للمشروع")
-
-try:
-    total_materials = df_project["الكلفة الإجمالية (دينار)"].sum() if len(st.session_state.project_items) > 0 else 0
-except:
-    total_materials = 0
-    
-try:
-    total_labor = total_labor_cost
-except:
-    total_labor = 0
-
-grand_total = total_materials + total_labor
-
-col1, col2, col3 = st.columns(3)
-col1.metric("تكلفة الكادر والعمالة", f"{total_labor:,.0f} د.ع")
-col2.metric("تكلفة المواد والتجهيزات", f"{total_materials:,.0f} د.ع")
-col3.metric("🔥 الكلفة الإجمالية للمشروع", f"{grand_total:,.0f} د.ع")
+    st.markdown("### 🗓️ جدول نشرة الأسعار المعتمدة (12 شهر)")
+    st.dataframe(df_price_chart.T)
