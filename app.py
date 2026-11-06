@@ -3,17 +3,20 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# 1. إعدادات الصفحة
+# إعدادات الصفحة والأيقونة (تكون بالبداية)
 st.set_page_config(
     page_title="مشروع المهندس سجاد 2026",
-    page_icon="📊",
+    page_icon="logo.jpg",
     layout="wide"
 )
 
-st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
-st.markdown("##### 👨‍🏫 إشراف: الأستاذ علي خليل | 💻 إعداد و برمجة: المهندس سجاد وفريق العمل")
-st.markdown("---")
+# إظهار اللوجو في أعلى التطبيق
+st.image("logo.jpg", use_container_width=True)
 
+# عنوان المنظومة
+st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
+st.markdown("##### 👨‍🏫 إشراف: الأستاذ علي خليل | 💻 إعداد وبرمجة: المهندس سجاد وفريق العمل")
+st.markdown("---")
 # 2. البيانات التاريخية لأسعار المواد (الأشهر 1 إلى 9)
 data_materials = {
     "الشهر": list(range(1, 10)),
