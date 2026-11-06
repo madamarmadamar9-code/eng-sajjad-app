@@ -6,6 +6,9 @@ import plotly.express as px
 # إعدادات الصفحة
 st.set_page_config(page_title="مشروع المهندس سجاد 2026", page_icon="logo.jpg", layout="wide")
 
+# إضافة اللوكو
+st.image("logo.jpg", width=150)
+
 st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
 st.markdown("##### 👨‍🏫 إشراف: الأستاذ علي خليل | 💻 إعداد وبرمجة: المهندس سجاد وفريق العمل")
 st.markdown("---")
@@ -28,7 +31,7 @@ data_materials = {
 df_materials_history = pd.DataFrame(data_materials)
 materials_list = [c for c in df_materials_history.columns if c != "الشهر"]
 
-# 2. البيانات التاريخية لأجور الكوادر (تم توسيعها للأشهر 1-9 لتعمل بسلاسة)
+# 2. البيانات التاريخية لأجور الكوادر
 provinces = ["بغداد", "البصرة", "النجف", "كربلاء", "أربيل", "سليمانية", "دهوك", "بابل", "ذي قار", "ميسان", "المثنى", "الديوانية", "واسط", "ديالى", "صلاح الدين", "كركوك", "الانبار", "نينوى"]
 
 wages_list = []
@@ -44,7 +47,8 @@ for m in range(1, 10):
         })
 df_wages_history = pd.DataFrame(wages_list)
 
-# 3. دوال التنبؤ
+# 3. دوال التنبؤ (مع إضافة الكاش لتسريع البرنامج)
+@st.cache_data 
 def get_safe_predictions(t_month, t_prov):
     months_num = np.array(df_materials_history["الشهر"].values)
     pred_mat = {}
@@ -109,26 +113,25 @@ with tab3:
         st.dataframe(df_p_wages, use_container_width=True, hide_index=True)
 
     st.markdown("---")
-    st.markdown("##### 📈 المسار البياني للأسعار (مطابق للمخطط الإحصائي)")
+    st.markdown("##### 📈 المسار البياني للأسعار")
     chart_item = st.selectbox("اختر المادة لرسم مسارها الزمني:", materials_list, index=0)
     
     hist_prices = list(df_materials_history[chart_item].values)
     pred_price = pred_mat_dict[chart_item]
     
-    x_months = [f"شهر {i}" for i in range(1, 10)] + [f"شهر {target_month} (تنبؤ)"]
+    x_months = [f"شهر {i}" for i in range(1, 10)] + [f"شهر {target_month}"]
     y_prices = hist_prices + [pred_price]
     
     df_chart = pd.DataFrame({"الشهر": x_months, "السعر (دينار)": y_prices})
-    fig = px.line(df_chart, x="الشهر", y="السعر (دينار)", title=f"المسار الزمني وتنبؤ أسعار: {chart_item}", markers=True)
+    fig = px.line(df_chart, x="الشهر", y="السعر (دينار)", title=f"المسار الزمني لأسعار: {chart_item}", markers=True)
     fig.update_traces(line_color='#176B87', marker=dict(size=8, color='#053B50'))
     st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================
-# الشيت الرابع: جدول الكميات الشامل (الربط الكلي)
+# الشيت الرابع: جدول الكميات الشامل
 # ==========================================
 with tab4:
     st.markdown("### 📋 جدول الكميات والتكلفة الشامل لجميع مراحل العمل")
-    st.info("💡 **النظام الذكي:** يغطي الجدول الآن كافة المراحل الهندسية. اختر أي شهر من 1 إلى 12، وسيقوم النظام فوراً بجلب الكلفة الحقيقية (للأشهر السابقة) أو التنبؤ بالكلفة (للأشهر المستقبلية) وتطبيقها على جميع الفقرات.")
 
     c_m, c_p = st.columns(2)
     with c_m:
@@ -136,9 +139,8 @@ with tab4:
     with c_p:
         selected_prov_b = st.selectbox("اختر المحافظة لتسعير العمل:", provinces, index=0, key="prov_tab4")
 
-    # تحديد الكلف بناءً على الشهر (حقيقي أو تنبؤ)
+    # تحديد الكلف بناءً على الشهر
     if selected_month_b <= 9:
-        st.success(f"✅ الكلف مبنية على الأسعار الفعلية المسجلة لشهر {selected_month_b}.")
         mat_row = df_materials_history[df_materials_history["الشهر"] == selected_month_b].iloc[0]
         wage_row = df_wages_history[(df_wages_history["الشهر"] == selected_month_b) & (df_wages_history["المحافظة"] == selected_prov_b)].iloc[0]
         
@@ -149,7 +151,6 @@ with tab4:
         w_skilled, w_unskilled, w_eng = wage_row["العمال الماهرون"], wage_row["العمال غير الماهرين"], wage_row["المهندسون"]
         
     else:
-        st.warning(f"🔮 الكلف مبنية على التنبؤات المستقبلية لشهر {selected_month_b}.")
         pm_dict, pw_dict = get_safe_predictions(selected_month_b, selected_prov_b)
         
         c_cement, c_gravel, c_sand, c_steel, c_brick = pm_dict["سمنت مقاوم"], pm_dict["حصى مكسر"], pm_dict["رمل أسود"], pm_dict["حديد شيش"], pm_dict["طابوق عادي"]
@@ -164,7 +165,7 @@ with tab4:
     cost_sab_lab = w_skilled / 2.5 
     cost_brick_mat = (c_brick * 0.4) + (c_cement * 0.08) + (c_sand * 0.2)
     cost_brick_lab = w_skilled / 1.7 
-    cost_roof_mat = cost_sab_mat + (c_steel * 0.1) # خرسانة + حديد تسليح
+    cost_roof_mat = cost_sab_mat + (c_steel * 0.1) 
     cost_roof_lab = (w_skilled + w_eng * 0.2) / 2.0
     cost_plaster_mat = (c_cement * 0.015) + (c_sand * 0.03)
     cost_plaster_lab = w_skilled / 10
@@ -195,7 +196,7 @@ with tab4:
         {"الفقرة": "تركيب زجاج", "الوحدة": "m2", "العدد": 1.0, "الطول": 2.0, "العرض": 2.0, "الارتفاع": 0.0, "خصم": 0.0, "كلفة المواد": int(cost_glass_mat), "كلفة العمل": int(cost_glass_lab)}
     ])
 
-    st.markdown("#### 📝 أولاً: جدول الإدخال التفاعلي (عدّل الأبعاد والكميات بالنقر المزدوج)")
+    st.markdown("#### 📝 أولاً: جدول الإدخال التفاعلي")
     edited_df = st.data_editor(boq_initial, use_container_width=True, disabled=["الفقرة", "الوحدة", "كلفة المواد", "كلفة العمل"])
 
     final_rows = []
@@ -205,11 +206,9 @@ with tab4:
         if row["الوحدة"] in ["m3", "ton"]: 
             qty = (row["العدد"] * row["الطول"] * row["العرض"] * row["الارتفاع"]) - row["خصم"]
         elif row["الوحدة"] == "m2":
-            # في المتر المربع نعتمد على الطول * الارتفاع للجدران، أو الطول * العرض للأرضيات
             val1 = row["الطول"] if row["الطول"] > 0 else 1
             val2 = row["العرض"] if row["العرض"] > 0 else 1
             val3 = row["الارتفاع"] if row["الارتفاع"] > 0 else 1
-            # إذا كان الارتفاع 0 (مثل الأرضيات) نضرب الطول في العرض
             qty = (row["العدد"] * val1 * (val3 if row["الارتفاع"] > 0 else val2)) - row["خصم"]
         else:
             qty = (row["العدد"] * row["الطول"]) - row["خصم"]
@@ -230,4 +229,5 @@ with tab4:
 
     st.markdown("#### 📊 ثانياً: جدول النتائج والكلف النهائية")
     st.dataframe(pd.DataFrame(final_rows), use_container_width=True)
-    st.success(f"💰 الكلفة الإجمالية للمشروع لشهر ({selected_month_b}): {grand_total:,.0f} دينار عراقي")
+    
+    st.markdown(f"### 💰 الكلفة الإجمالية للمشروع لشهر ({selected_month_b}): {grand_total:,.0f} دينار عراقي")
