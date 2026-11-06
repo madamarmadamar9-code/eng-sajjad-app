@@ -6,8 +6,8 @@ import plotly.express as px
 # إعدادات الصفحة
 st.set_page_config(page_title="مشروع المهندس سجاد 2026", page_icon="logo.jpg", layout="wide")
 
-# إضافة اللوكو
-st.image("logo.jpg", width=150)
+# تعديل حجم اللوكو إلى حجم وسط
+st.image("logo.jpg", width=300)
 
 st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
 st.markdown("##### 👨‍🏫 إشراف: الأستاذ علي خليل | 💻 إعداد وبرمجة: المهندس سجاد وفريق العمل")
