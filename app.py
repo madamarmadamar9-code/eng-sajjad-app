@@ -6,7 +6,7 @@ import plotly.express as px
 # إعدادات الصفحة
 st.set_page_config(page_title="مشروع المهندس سجاد 2026", page_icon="logo.jpg", layout="wide")
 
-# إرجاع اللوكو لحجم كبير وواضح
+# إبقاء اللوكو بحجم كبير وواضح
 st.image("logo.jpg", width=400)
 
 st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
@@ -52,10 +52,9 @@ def load_base_data():
     df_w = pd.DataFrame(w_list)
     return df_mat, df_w, mat_list, provs
 
-# استدعاء البيانات مرة واحدة فقط
 df_materials_history, df_wages_history, materials_list, provinces = load_base_data()
 
-# 3. دوال التنبؤ بذاكرة مؤقتة
+# 3. دوال التنبؤ
 @st.cache_data 
 def get_safe_predictions(t_month, t_prov):
     months_num = np.array(df_materials_history["الشهر"].values)
@@ -136,18 +135,18 @@ with tab3:
     st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================
-# الشيت الرابع: جدول الكميات الشامل
+# الشيت الرابع: جدول الكميات الشامل (النسخة السريعة والمستقرة)
 # ==========================================
 with tab4:
     st.markdown("### 📋 جدول الكميات والتكلفة الشامل لجميع مراحل العمل")
 
     c_m, c_p = st.columns(2)
     with c_m:
-        selected_month_b = st.selectbox("اختر شهر التسعير المرجعي (1-12):", list(range(1, 13)), index=0) 
+        selected_month_b = st.selectbox("اختر شهر التسعير المرجعي (1-12):", list(range(1, 13)), index=0, key="boq_month") 
     with c_p:
-        selected_prov_b = st.selectbox("اختر المحافظة لتسعير العمل:", provinces, index=0, key="prov_tab4")
+        selected_prov_b = st.selectbox("اختر المحافظة لتسعير العمل:", provinces, index=0, key="boq_prov")
 
-    # تحديد الكلف بناءً على الشهر
+    # تحديد الكلف بناءً على الشهر والمحافظة المحددة
     if selected_month_b <= 9:
         mat_row = df_materials_history[df_materials_history["الشهر"] == selected_month_b].iloc[0]
         wage_row = df_wages_history[(df_wages_history["الشهر"] == selected_month_b) & (df_wages_history["المحافظة"] == selected_prov_b)].iloc[0]
@@ -157,7 +156,6 @@ with tab4:
         c_paint, c_glass = mat_row["أسباغ مائية"], mat_row["زجاج"]
         
         w_skilled, w_unskilled, w_eng = wage_row["العمال الماهرون"], wage_row["العمال غير الماهرين"], wage_row["المهندسون"]
-        
     else:
         pm_dict, pw_dict = get_safe_predictions(selected_month_b, selected_prov_b)
         
@@ -204,9 +202,17 @@ with tab4:
         {"الفقرة": "تركيب زجاج", "الوحدة": "m2", "العدد": 1.0, "الطول": 2.0, "العرض": 2.0, "الارتفاع": 0.0, "خصم": 0.0, "كلفة المواد": int(cost_glass_mat), "كلفة العمل": int(cost_glass_lab)}
     ])
 
-    st.markdown("#### 📝 أولاً: جدول الإدخال التفاعلي")
-    edited_df = st.data_editor(boq_initial, use_container_width=True, disabled=["الفقرة", "الوحدة", "كلفة المواد", "كلفة العمل"])
+    # وضع الجدول داخل Form لمنع التحديث التلقائي المزعج (يمنع التعليق والبطء)
+    st.markdown("#### 📝 أولاً: أدخل الأبعاد والكميات هنا (براحتك وبدون تعليق)")
+    with st.form("boq_form"):
+        # مفتاح متغير (key) يجبر الجدول على تحديث أسعار المواد والعمل فور تغيير الشهر أو المحافظة
+        dynamic_key = f"editor_{selected_month_b}_{selected_prov_b}"
+        edited_df = st.data_editor(boq_initial, use_container_width=True, disabled=["الفقرة", "الوحدة", "كلفة المواد", "كلفة العمل"], key=dynamic_key)
+        
+        # الزر الذي يقوم بالحساب مرة واحدة فقط
+        submit_calc = st.form_submit_button("إحسب الكلفة النهائية 🧮", use_container_width=True)
 
+    # حساب النتائج وعرضها (تعمل فوراً عند الضغط على الزر أو عند تحميل الصفحة)
     final_rows = []
     grand_total = 0
 
@@ -238,4 +244,4 @@ with tab4:
     st.markdown("#### 📊 ثانياً: جدول النتائج والكلف النهائية")
     st.dataframe(pd.DataFrame(final_rows), use_container_width=True)
     
-    st.markdown(f"### 💰 الكلفة الإجمالية للمشروع لشهر ({selected_month_b}): {grand_total:,.0f} دينار عراقي")
+    st.success(f"💰 الكلفة الإجمالية للمشروع لشهر ({selected_month_b}) في ({selected_prov_b}): {grand_total:,.0f} دينار عراقي")
