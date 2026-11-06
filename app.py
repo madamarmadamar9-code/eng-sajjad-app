@@ -14,10 +14,11 @@ st.markdown("##### 👨‍🏫 إشراف: الأستاذ علي خليل | 💻
 st.markdown("---")
 
 # ==========================================
-# تحميل البيانات
+# تسريع خارق: تخزين البيانات في الذاكرة لمنع البطء
 # ==========================================
 @st.cache_data
 def load_base_data():
+    # 1. أسعار المواد
     data_materials = {
         "الشهر": list(range(1, 10)),
         "طابوق عادي": [155000, 155000, 152000, 152000, 150000, 160000, 165000, 164000, 161000],
@@ -35,6 +36,7 @@ def load_base_data():
     df_mat = pd.DataFrame(data_materials)
     mat_list = [c for c in df_mat.columns if c != "الشهر"]
 
+    # 2. أجور الكوادر
     provs = ["بغداد", "البصرة", "النجف", "كربلاء", "أربيل", "سليمانية", "دهوك", "بابل", "ذي قار", "ميسان", "المثنى", "الديوانية", "واسط", "ديالى", "صلاح الدين", "كركوك", "الانبار", "نينوى"]
     w_list = []
     for m in range(1, 10):
@@ -52,6 +54,7 @@ def load_base_data():
 
 df_materials_history, df_wages_history, materials_list, provinces = load_base_data()
 
+# 3. دوال التنبؤ
 @st.cache_data 
 def get_safe_predictions(t_month, t_prov):
     months_num = np.array(df_materials_history["الشهر"].values)
@@ -62,7 +65,8 @@ def get_safe_predictions(t_month, t_prov):
         pred_mat[mat] = max(0, round(float(np.polyval(poly, t_month)), 0))
         
     prov_df = df_wages_history[df_wages_history["المحافظة"] == t_prov]
-    if prov_df.empty: prov_df = df_wages_history[df_wages_history["المحافظة"] == "بغداد"]
+    if prov_df.empty:
+        prov_df = df_wages_history[df_wages_history["المحافظة"] == "بغداد"]
         
     months_w = np.array(prov_df["الشهر"].values)
     pred_w = {}
@@ -74,9 +78,7 @@ def get_safe_predictions(t_month, t_prov):
         
     return pred_mat, pred_w
 
-# ==========================================
-# واجهة التبويبات
-# ==========================================
+# 4. واجهة التبويبات
 tab1, tab2, tab3, tab4 = st.tabs([
     "📋 شيت 1: سجل أسعار المواد", 
     "👷 شيت 2: سجل أجور الكوادر", 
@@ -100,9 +102,9 @@ with tab3:
     st.subheader("🔮 لوحة التنبؤ الذكية والتحليل البياني")
     col1, col2 = st.columns(2)
     with col1:
-        target_month = st.selectbox("اختر رقم الشهر المستهدف للتنبؤ:", [10, 11, 12], index=0)
+        target_month = st.selectbox("اختر رقم الشهر المستهدف للتنبؤ:", [10, 11, 12], index=0, key="t_month_tab3")
     with col2:
-        target_province = st.selectbox("اختر المحافظة للتنبؤ:", provinces, index=0)
+        target_province = st.selectbox("اختر المحافظة للتنبؤ:", provinces, index=0, key="t_prov_tab3")
         
     pred_mat_dict, pred_wages_dict = get_safe_predictions(target_month, target_province)
     
@@ -120,17 +122,20 @@ with tab3:
     st.markdown("---")
     st.markdown("##### 📈 المسار البياني للأسعار")
     chart_item = st.selectbox("اختر المادة لرسم مسارها الزمني:", materials_list, index=0)
+    
     hist_prices = list(df_materials_history[chart_item].values)
     pred_price = pred_mat_dict[chart_item]
+    
     x_months = [f"شهر {i}" for i in range(1, 10)] + [f"شهر {target_month}"]
     y_prices = hist_prices + [pred_price]
+    
     df_chart = pd.DataFrame({"الشهر": x_months, "السعر (دينار)": y_prices})
     fig = px.line(df_chart, x="الشهر", y="السعر (دينار)", title=f"المسار الزمني لأسعار: {chart_item}", markers=True)
     fig.update_traces(line_color='#176B87', marker=dict(size=8, color='#053B50'))
     st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================
-# الشيت الرابع: جدول الكميات (النسخة الفائقة السرعة)
+# الشيت الرابع: جدول الكميات الشامل (النسخة السريعة والمستقرة)
 # ==========================================
 with tab4:
     st.markdown("### 📋 جدول الكميات والتكلفة الشامل لجميع مراحل العمل")
@@ -141,90 +146,102 @@ with tab4:
     with c_p:
         selected_prov_b = st.selectbox("اختر المحافظة لتسعير العمل:", provinces, index=0, key="boq_prov")
 
-    # جدول الإدخال فقط (بدون أسعار، علمود يكون سريع جداً وميعلق)
-    boq_inputs_only = pd.DataFrame([
-        {"الفقرة": "حفر الأسس الترابية", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 1.0, "خصم": 0.0},
-        {"الفقرة": "صب أسس خرسانة", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 0.5, "خصم": 0.0},
-        {"الفقرة": "بناء جدران طابوق", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 0.24, "الارتفاع": 3.0, "خصم": 0.0},
-        {"الفقرة": "سقف خرسانة مسلحة", "الوحدة": "m3", "العدد": 1.0, "الطول": 5.0, "العرض": 4.0, "الارتفاع": 0.2, "خصم": 0.0},
-        {"الفقرة": "تطبيق أرضيات كاشي", "الوحدة": "m2", "العدد": 1.0, "الطول": 5.0, "العرض": 4.0, "الارتفاع": 0.0, "خصم": 0.0},
-        {"الفقرة": "تطبيق أرضيات مرمر", "الوحدة": "m2", "العدد": 1.0, "الطول": 4.0, "العرض": 4.0, "الارتفاع": 0.0, "خصم": 0.0},
-        {"الفقرة": "تطبيق سيراميك جدران", "الوحدة": "m2", "العدد": 1.0, "الطول": 4.0, "العرض": 1.0, "الارتفاع": 2.0, "خصم": 0.0},
-        {"الفقرة": "بياض جص/بورك داخلي", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0},
-        {"الفقرة": "لبخ بالأسمنت خارجي", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0},
-        {"الفقرة": "أصباغ مائية جدران", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0},
-        {"الفقرة": "تركيب زجاج", "الوحدة": "m2", "العدد": 1.0, "الطول": 2.0, "العرض": 2.0, "الارتفاع": 0.0, "خصم": 0.0}
+    # تحديد الكلف بناءً على الشهر والمحافظة المحددة
+    if selected_month_b <= 9:
+        mat_row = df_materials_history[df_materials_history["الشهر"] == selected_month_b].iloc[0]
+        wage_row = df_wages_history[(df_wages_history["الشهر"] == selected_month_b) & (df_wages_history["المحافظة"] == selected_prov_b)].iloc[0]
+        
+        c_cement, c_gravel, c_sand, c_steel, c_brick = mat_row["سمنت مقاوم"], mat_row["حصى مكسر"], mat_row["رمل أسود"], mat_row["حديد شيش"], mat_row["طابوق عادي"]
+        c_borak, c_kashi, c_marmar, c_ceramic = mat_row["بورك"], mat_row["كاشي عادي"], mat_row["مرمر"], mat_row["سيراميك"]
+        c_paint, c_glass = mat_row["أسباغ مائية"], mat_row["زجاج"]
+        
+        w_skilled, w_unskilled, w_eng = wage_row["العمال الماهرون"], wage_row["العمال غير الماهرين"], wage_row["المهندسون"]
+    else:
+        pm_dict, pw_dict = get_safe_predictions(selected_month_b, selected_prov_b)
+        
+        c_cement, c_gravel, c_sand, c_steel, c_brick = pm_dict["سمنت مقاوم"], pm_dict["حصى مكسر"], pm_dict["رمل أسود"], pm_dict["حديد شيش"], pm_dict["طابوق عادي"]
+        c_borak, c_kashi, c_marmar, c_ceramic = pm_dict["بورك"], pm_dict["كاشي عادي"], pm_dict["مرمر"], pm_dict["سيراميك"]
+        c_paint, c_glass = pm_dict["أسباغ مائية"], pm_dict["زجاج"]
+        
+        w_skilled, w_unskilled, w_eng = pw_dict["العمال الماهرون"], pw_dict["العمال غير الماهرين"], pw_dict["المهندسون"]
+
+    # هندسة الكلف لكل فقرة
+    cost_hafar_lab = w_unskilled / 3.5  
+    cost_sab_mat = (c_cement * 0.35) + (c_gravel * 0.8) + (c_sand * 0.4)
+    cost_sab_lab = w_skilled / 2.5 
+    cost_brick_mat = (c_brick * 0.4) + (c_cement * 0.08) + (c_sand * 0.2)
+    cost_brick_lab = w_skilled / 1.7 
+    cost_roof_mat = cost_sab_mat + (c_steel * 0.1) 
+    cost_roof_lab = (w_skilled + w_eng * 0.2) / 2.0
+    cost_plaster_mat = (c_cement * 0.015) + (c_sand * 0.03)
+    cost_plaster_lab = w_skilled / 10
+    cost_kashi_mat = c_kashi + (c_cement * 0.01) + (c_sand * 0.02)
+    cost_kashi_lab = w_skilled / 15
+    cost_borak_mat = c_borak * 0.02
+    cost_borak_lab = w_skilled / 20
+    cost_ceramic_mat = c_ceramic + (c_cement * 0.01)
+    cost_ceramic_lab = w_skilled / 12
+    cost_paint_mat = c_paint * 0.2
+    cost_paint_lab = w_skilled / 25
+    cost_marmar_mat = c_marmar + (c_cement * 0.015) + (c_sand * 0.03)
+    cost_marmar_lab = w_skilled / 8
+    cost_glass_mat = c_glass
+    cost_glass_lab = w_skilled / 20
+
+    boq_initial = pd.DataFrame([
+        {"الفقرة": "حفر الأسس الترابية", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 1.0, "خصم": 0.0, "كلفة المواد": 0, "كلفة العمل": int(cost_hafar_lab)},
+        {"الفقرة": "صب أسس خرسانة", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 0.5, "خصم": 0.0, "كلفة المواد": int(cost_sab_mat), "كلفة العمل": int(cost_sab_lab)},
+        {"الفقرة": "بناء جدران طابوق", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 0.24, "الارتفاع": 3.0, "خصم": 0.0, "كلفة المواد": int(cost_brick_mat), "كلفة العمل": int(cost_brick_lab)},
+        {"الفقرة": "سقف خرسانة مسلحة", "الوحدة": "m3", "العدد": 1.0, "الطول": 5.0, "العرض": 4.0, "الارتفاع": 0.2, "خصم": 0.0, "كلفة المواد": int(cost_roof_mat), "كلفة العمل": int(cost_roof_lab)},
+        {"الفقرة": "تطبيق أرضيات كاشي", "الوحدة": "m2", "العدد": 1.0, "الطول": 5.0, "العرض": 4.0, "الارتفاع": 0.0, "خصم": 0.0, "كلفة المواد": int(cost_kashi_mat), "كلفة العمل": int(cost_kashi_lab)},
+        {"الفقرة": "تطبيق أرضيات مرمر", "الوحدة": "m2", "العدد": 1.0, "الطول": 4.0, "العرض": 4.0, "الارتفاع": 0.0, "خصم": 0.0, "كلفة المواد": int(cost_marmar_mat), "كلفة العمل": int(cost_marmar_lab)},
+        {"الفقرة": "تطبيق سيراميك جدران", "الوحدة": "m2", "العدد": 1.0, "الطول": 4.0, "العرض": 1.0, "الارتفاع": 2.0, "خصم": 0.0, "كلفة المواد": int(cost_ceramic_mat), "كلفة العمل": int(cost_ceramic_lab)},
+        {"الفقرة": "بياض جص/بورك داخلي", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0, "كلفة المواد": int(cost_borak_mat), "كلفة العمل": int(cost_borak_lab)},
+        {"الفقرة": "لبخ بالأسمنت خارجي", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0, "كلفة المواد": int(cost_plaster_mat), "كلفة العمل": int(cost_plaster_lab)},
+        {"الفقرة": "أصباغ مائية جدران", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0, "كلفة المواد": int(cost_paint_mat), "كلفة العمل": int(cost_paint_lab)},
+        {"الفقرة": "تركيب زجاج", "الوحدة": "m2", "العدد": 1.0, "الطول": 2.0, "العرض": 2.0, "الارتفاع": 0.0, "خصم": 0.0, "كلفة المواد": int(cost_glass_mat), "كلفة العمل": int(cost_glass_lab)}
     ])
 
-    st.markdown("#### 📝 أولاً: أدخل الأبعاد والكميات هنا (اكتب براحتك بدون أي تعليق)")
+    # وضع الجدول داخل Form لمنع التحديث التلقائي المزعج (يمنع التعليق والبطء)
+    st.markdown("#### 📝 أولاً: أدخل الأبعاد والكميات هنا (براحتك وبدون تعليق)")
     with st.form("boq_form"):
-        # مفتاح ثابت يمنع المتصفح من إعادة تحميل الجدول كل ثانية
-        user_edited_df = st.data_editor(boq_inputs_only, use_container_width=True, disabled=["الفقرة", "الوحدة"], key="static_editor")
+        # مفتاح متغير (key) يجبر الجدول على تحديث أسعار المواد والعمل فور تغيير الشهر أو المحافظة
+        dynamic_key = f"editor_{selected_month_b}_{selected_prov_b}"
+        edited_df = st.data_editor(boq_initial, use_container_width=True, disabled=["الفقرة", "الوحدة", "كلفة المواد", "كلفة العمل"], key=dynamic_key)
+        
+        # الزر الذي يقوم بالحساب مرة واحدة فقط
         submit_calc = st.form_submit_button("إحسب الكلفة النهائية 🧮", use_container_width=True)
 
-    # الحساب يتم فقط عند الضغط على الزر، مما يلغي التعليق تماماً
-    if submit_calc:
-        if selected_month_b <= 9:
-            mat_row = df_materials_history[df_materials_history["الشهر"] == selected_month_b].iloc[0]
-            wage_row = df_wages_history[(df_wages_history["الشهر"] == selected_month_b) & (df_wages_history["المحافظة"] == selected_prov_b)].iloc[0]
-            c_cement, c_gravel, c_sand, c_steel, c_brick = mat_row["سمنت مقاوم"], mat_row["حصى مكسر"], mat_row["رمل أسود"], mat_row["حديد شيش"], mat_row["طابوق عادي"]
-            c_borak, c_kashi, c_marmar, c_ceramic = mat_row["بورك"], mat_row["كاشي عادي"], mat_row["مرمر"], mat_row["سيراميك"]
-            c_paint, c_glass = mat_row["أسباغ مائية"], mat_row["زجاج"]
-            w_skilled, w_unskilled, w_eng = wage_row["العمال الماهرون"], wage_row["العمال غير الماهرين"], wage_row["المهندسون"]
+    # حساب النتائج وعرضها (تعمل فوراً عند الضغط على الزر أو عند تحميل الصفحة)
+    final_rows = []
+    grand_total = 0
+
+    for index, row in edited_df.iterrows():
+        if row["الوحدة"] in ["m3", "ton"]: 
+            qty = (row["العدد"] * row["الطول"] * row["العرض"] * row["الارتفاع"]) - row["خصم"]
+        elif row["الوحدة"] == "m2":
+            val1 = row["الطول"] if row["الطول"] > 0 else 1
+            val2 = row["العرض"] if row["العرض"] > 0 else 1
+            val3 = row["الارتفاع"] if row["الارتفاع"] > 0 else 1
+            qty = (row["العدد"] * val1 * (val3 if row["الارتفاع"] > 0 else val2)) - row["خصم"]
         else:
-            pm_dict, pw_dict = get_safe_predictions(selected_month_b, selected_prov_b)
-            c_cement, c_gravel, c_sand, c_steel, c_brick = pm_dict["سمنت مقاوم"], pm_dict["حصى مكسر"], pm_dict["رمل أسود"], pm_dict["حديد شيش"], pm_dict["طابوق عادي"]
-            c_borak, c_kashi, c_marmar, c_ceramic = pm_dict["بورك"], pm_dict["كاشي عادي"], pm_dict["مرمر"], pm_dict["سيراميك"]
-            c_paint, c_glass = pm_dict["أسباغ مائية"], pm_dict["زجاج"]
-            w_skilled, w_unskilled, w_eng = pw_dict["العمال الماهرون"], pw_dict["العمال غير الماهرين"], pw_dict["المهندسون"]
-
-        costs_map = {
-            "حفر الأسس الترابية": {"mat": 0, "lab": w_unskilled / 3.5},
-            "صب أسس خرسانة": {"mat": (c_cement * 0.35) + (c_gravel * 0.8) + (c_sand * 0.4), "lab": w_skilled / 2.5},
-            "بناء جدران طابوق": {"mat": (c_brick * 0.4) + (c_cement * 0.08) + (c_sand * 0.2), "lab": w_skilled / 1.7},
-            "سقف خرسانة مسلحة": {"mat": ((c_cement * 0.35) + (c_gravel * 0.8) + (c_sand * 0.4)) + (c_steel * 0.1), "lab": (w_skilled + w_eng * 0.2) / 2.0},
-            "تطبيق أرضيات كاشي": {"mat": c_kashi + (c_cement * 0.01) + (c_sand * 0.02), "lab": w_skilled / 15},
-            "تطبيق أرضيات مرمر": {"mat": c_marmar + (c_cement * 0.015) + (c_sand * 0.03), "lab": w_skilled / 8},
-            "تطبيق سيراميك جدران": {"mat": c_ceramic + (c_cement * 0.01), "lab": w_skilled / 12},
-            "بياض جص/بورك داخلي": {"mat": c_borak * 0.02, "lab": w_skilled / 20},
-            "لبخ بالأسمنت خارجي": {"mat": (c_cement * 0.015) + (c_sand * 0.03), "lab": w_skilled / 10},
-            "أصباغ مائية جدران": {"mat": c_paint * 0.2, "lab": w_skilled / 25},
-            "تركيب زجاج": {"mat": c_glass, "lab": w_skilled / 20}
-        }
-
-        final_rows = []
-        grand_total = 0
-
-        for index, row in user_edited_df.iterrows():
-            if row["الوحدة"] in ["m3", "ton"]: 
-                qty = (row["العدد"] * row["الطول"] * row["العرض"] * row["الارتفاع"]) - row["خصم"]
-            elif row["الوحدة"] == "m2":
-                val1 = row["الطول"] if row["الطول"] > 0 else 1
-                val2 = row["العرض"] if row["العرض"] > 0 else 1
-                val3 = row["الارتفاع"] if row["الارتفاع"] > 0 else 1
-                qty = (row["العدد"] * val1 * (val3 if row["الارتفاع"] > 0 else val2)) - row["خصم"]
-            else:
-                qty = (row["العدد"] * row["الطول"]) - row["خصم"]
-                
-            qty = max(0, qty)
-            mat_cost_unit = costs_map[row["الفقرة"]]["mat"]
-            lab_cost_unit = costs_map[row["الفقرة"]]["lab"]
+            qty = (row["العدد"] * row["الطول"]) - row["خصم"]
             
-            mat_total = qty * mat_cost_unit
-            lab_total = qty * lab_cost_unit
-            total = mat_total + lab_total
-            grand_total += total
-            
-            final_rows.append({
-                "الفقرة": row["الفقرة"],
-                "الكمية الصافية": round(qty, 2),
-                "كلفة المواد للوحدة": f"{int(mat_cost_unit):,}",
-                "كلفة العمل للوحدة": f"{int(lab_cost_unit):,}",
-                "إجمالي كلفة المواد": f"{int(mat_total):,}",
-                "إجمالي كلفة العمل": f"{int(lab_total):,}",
-                "الكلفة الكلية": f"{int(total):,}"
-            })
+        qty = max(0, qty)
+        mat_total = qty * row["كلفة المواد"]
+        lab_total = qty * row["كلفة العمل"]
+        total = mat_total + lab_total
+        grand_total += total
+        
+        final_rows.append({
+            "الفقرة": row["الفقرة"],
+            "الكمية الصافية": round(qty, 2),
+            "إجمالي المواد": f"{int(mat_total):,}",
+            "إجمالي العمل": f"{int(lab_total):,}",
+            "الكلفة الكلية": f"{int(total):,}"
+        })
 
-        st.markdown("#### 📊 ثانياً: جدول النتائج والكلف النهائية")
-        st.dataframe(pd.DataFrame(final_rows), use_container_width=True)
-        st.success(f"💰 الكلفة الإجمالية للمشروع لشهر ({selected_month_b}) في ({selected_prov_b}): {grand_total:,.0f} دينار عراقي")
+    st.markdown("#### 📊 ثانياً: جدول النتائج والكلف النهائية")
+    st.dataframe(pd.DataFrame(final_rows), use_container_width=True)
+    
+    st.success(f"💰 الكلفة الإجمالية للمشروع لشهر ({selected_month_b}) في ({selected_prov_b}): {grand_total:,.0f} دينار عراقي")
