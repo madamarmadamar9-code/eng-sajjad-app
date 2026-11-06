@@ -30,7 +30,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.header("📈 البيانات التاريخية لأسعار المواد (الأشهر 1 إلى 9)")
     data_materials = {
-        "الشهر": list(range(1, 10)),
+        "الشهر": [1, 2, 3, 4, 5, 6, 7, 8, 9],
         "طابوق عادي": [155000, 155000, 152000, 152000, 150000, 160000, 165000, 164000, 161000],
         "سمنت مقاوم": [121000, 123000, 122000, 124000, 124000, 123000, 122000, 121000, 120000],
         "حديد شيش": [985000, 975000, 972000, 980000, 977000, 986000, 971000, 965000, 969000],
@@ -53,7 +53,7 @@ with tab1:
 with tab2:
     st.header("👷 البيانات التاريخية لأجور الكوادر والعمال (الأشهر 1 إلى 9)")
     data_labor = {
-        "الشهر": list(range(1, 10)),
+        "الشهر": [1, 2, 3, 4, 5, 6, 7, 8, 9],
         "العمال غير الماهرين": [25000, 25000, 25000, 25000, 26000, 26000, 27000, 27000, 27000],
         "العمال شبه الماهرين": [35000, 35000, 35000, 36000, 36000, 37000, 37000, 38000, 38000],
         "العمال الماهرون": [50000, 50000, 52000, 52000, 55000, 55000, 55000, 58000, 60000],
@@ -101,24 +101,24 @@ with tab4:
             c1, c2, c3, c4 = st.columns(4)
             
             with c1:
-                l_val = st.number_input(f"الطول / العدد - {item['name']}", value=float(item['l']), step=0.5, key=f"v4_l_{item['name']}")
+                l_val = st.number_input(f"الطول / العدد - {item['name']}", value=float(item['l']), step=0.5, key=f"f4_l_{item['name']}")
             
             with c2:
                 if item["unit"] == "m3":
-                    w_val = st.number_input(f"العرض (م) - {item['name']}", value=float(item['w']), step=0.05, key=f"v4_w_{item['name']}")
+                    w_val = st.number_input(f"العرض (م) - {item['name']}", value=float(item['w']), step=0.05, key=f"f4_w_{item['name']}")
                 else:
                     w_val = 1.0
-                    st.text_input(f"العرض - {item['name']}", value="سطحي (غير مطلوب)", disabled=True, key=f"v4_dis_w_{item['name']}")
+                    st.text_input(f"العرض - {item['name']}", value="سطحي (غير مطلوب)", disabled=True, key=f"f4_dis_w_{item['name']}")
                     
             with c3:
                 if item["unit"] in ["m3", "m2"]:
-                    h_val = st.number_input(f"السمك / الارتفاع (م) - {item['name']}", value=float(item['h']), step=0.1, key=f"v4_h_{item['name']}")
+                    h_val = st.number_input(f"السمك / الارتفاع (م) - {item['name']}", value=float(item['h']), step=0.1, key=f"f4_h_{item['name']}")
                 else:
                     h_val = 1.0
-                    st.text_input(f"الارتفاع - {item['name']}", value="غير مطلوب", disabled=True, key=f"v4_dis_h_{item['name']}")
+                    st.text_input(f"الارتفاع - {item['name']}", value="غير مطلوب", disabled=True, key=f"f4_dis_h_{item['name']}")
                 
             with c4:
-                disc_val = st.number_input(f"الخصم (الفتحات) - {item['name']}", value=float(item['disc']), step=0.25, key=f"v4_disc_{item['name']}")
+                disc_val = st.number_input(f"الخصم (الفتحات) - {item['name']}", value=float(item['disc']), step=0.25, key=f"f4_disc_{item['name']}")
 
         # حساب الكميات الصافية
         if item["unit"] == "m3":
@@ -134,7 +134,6 @@ with tab4:
         labor_cost = net_qty * item["labor_rate"]
         total_cost = mat_cost + labor_cost
         
-        # إضافة التكلفة للإجمالي الكلي
         grand_total_num += total_cost
         
         calculated_rows.append({
@@ -150,16 +149,13 @@ with tab4:
             "الكلفة الكلية المتوقعة (دينار)": f"{int(total_cost):,}"
         })
 
-    # تحويل البيانات لجدول DataFrame
     df_s4 = pd.DataFrame(calculated_rows)
 
     st.markdown("---")
     st.subheader("📋 شيت جدول الكميات والتكاليف الإجمالية")
     
-    # عرض الجدول
     st.dataframe(df_s4, use_container_width=True)
 
-    # الشريط الأخضر السفلي
     st.markdown(
         f"""
         <div style="background-color: #1b5e20; padding: 16px; border-radius: 6px; text-align: center; color: white; font-size: 22px; font-weight: bold; font-family: sans-serif; margin-top: 15px;">
