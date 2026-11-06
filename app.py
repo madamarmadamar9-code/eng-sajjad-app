@@ -157,110 +157,61 @@ with tab3:
     
     fig = px.line(df_chart, x="الشهر", y="السعر (دينار)", color="نوع البيان", title=f"المسار الزمني وتنبؤ أسعار {selected_item}", markers=True)
     st.plotly_chart(fig, use_container_width=True)
-
-# ---------------------------------------------------------
-# شيت 4: جدول الكميات والتكلفة الكلية (مُحدث بالرباط المائي العلوي)
-# ---------------------------------------------------------
+# ==========================================
+# الشيت الرابع: جدول الكميات (نظام الإكسل التفاعلي)
+# ==========================================
 with tab4:
-    st.subheader("📑 جدول الكميات والتكلفة الكلية الشاملة للمشروع")
-    st.markdown("*مربوط آلياً بأسعار المواد والأجور المستقبليّة المحسوبة في لوحة التنبؤ*")
-    
-    p_mat_sec4, p_wages_sec4 = get_safe_predictions(10, "بغداد")
-    
-    with st.expander("📐 مدخلات الأبعاد الهندسية للمشروع", expanded=True):
-        col_in1, col_in2, col_in3 = st.columns(3)
-        with col_in1:
-            l_b = st.number_input("طول البناء (متر)", value=15.0)
-            w_b = st.number_input("عرض البناء (متر)", value=10.0)
-            h_b = st.number_input("ارتفاع الجدران (متر)", value=3.2)
-        with col_in2:
-            raft_t = st.number_input("سمك خرسانة الرافت (متر)", value=0.6)
-            roof_t = st.number_input("سمك خرسانة السقف (متر)", value=0.25)
-            cols_n = st.number_input("عدد الدينك (الأعمدة)", value=16)
-        with col_in3:
-            parapet_h = st.number_input("ارتفاع الستارة (متر)", value=1.38)
-            excav_d = st.number_input("عمق الحفر (متر)", value=1.62)
+    st.markdown("### 📋 جدول الكميات والتكلفة الشامل (مطابق لنظام الإكسل)")
+    st.info("💡 **طريقة الاستخدام:** انقر نقراً مزدوجاً على أي خلية في أعمدة (العدد، الطول، العرض، الارتفاع، خصم) لتعديل الأرقام، وسيقوم الجدول السفلي بحساب الصافي والكلف تلقائياً لكل فقرة بشكل مستقل.")
 
-    # 1. حسابات الحفر والخرسانة والرباط المائي العلوي
-    vol_excav = l_b * w_b * excav_d
-    vol_raft = l_b * w_b * raft_t
-    vol_cols = cols_n * (0.3 * 0.4 * h_b)
-    vol_roof = l_b * w_b * roof_t
-    
-    # خرسانة الرباط المائي العلوي للستارة (المحيط × مقطع الرباط الخرساني)
-    vol_coping = (2 * (l_b + w_b)) * 0.25 * 0.15 
-    
-    # إجمالي الخرسانة المسلحة (أساس + أعمدة + سقف + رباط مائي علوي)
-    total_concrete = vol_raft + vol_cols + vol_roof + vol_coping
-    
-    # حديد التسليح الكلي الشامل للرباط المائي والهيكل
-    steel_tons = (total_concrete * 120) / 1000.0
+    # 1. جدول الإدخالات (كل فقرة مفصولة تماماً لتجنب الأخطاء)
+    boq_initial = pd.DataFrame([
+        {"الفقرة": "حفر الأساسات", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 1.0, "خصم": 0.0, "كلفة المواد": 0, "كلفة العمل": 6250},
+        {"الفقرة": "صب أسس الخرسانة", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 0.5, "خصم": 0.0, "كلفة المواد": 71000, "كلفة العمل": 17500},
+        {"الفقرة": "حديد التسليح", "الوحدة": "ton", "العدد": 1.0, "الطول": 1.0, "العرض": 1.0, "الارتفاع": 1.0, "خصم": 0.0, "كلفة المواد": 970000, "كلفة العمل": 150000},
+        {"الفقرة": "بناء جدران الطابوق", "الوحدة": "m3", "العدد": 1.0, "الطول": 10.0, "العرض": 0.24, "الارتفاع": 3.0, "خصم": 0.0, "كلفة المواد": 84000, "كلفة العمل": 25000},
+        {"الفقرة": "اللبخ بالأسمنت", "الوحدة": "m2", "العدد": 1.0, "الطول": 10.0, "العرض": 1.0, "الارتفاع": 3.0, "خصم": 0.0, "كلفة المواد": 2400, "كلفة العمل": 4000}
+    ])
 
-    # 2. حسابات الطابوق والإنهاءات
-    wall_area = (2 * (l_b + w_b)) * h_b
-    parapet_wall_area = (2 * (l_b + w_b)) * parapet_h
-    total_bricks = ((wall_area + parapet_wall_area) * 450)
-    
-    finish_area = wall_area * 2
-    floor_area = l_b * w_b
+    # عرض جدول الإدخال التفاعلي
+    st.markdown("#### 📝 أولاً: جدول إدخال الأبعاد")
+    edited_df = st.data_editor(
+        boq_initial,
+        use_container_width=True,
+        # قفلنا أعمدة الثوابت حتى لا تتعدل بالخطأ (فقط الأبعاد تتعدل)
+        disabled=["الفقرة", "الوحدة", "كلفة المواد", "كلفة العمل"] 
+    )
 
-    # 3. الأسعار والأجور المربوطة بالتنبؤ
-    p_steel = p_mat_sec4["حديد شيش"]
-    p_cement = p_mat_sec4["سمنت مقاوم"]
-    p_brick = p_mat_sec4["طابوق عادي"]
-    p_tile = p_mat_sec4["كاشي عادي"]
-    p_paint = p_mat_sec4["أسباغ مائية"]
-    
-    w_eng = p_wages_sec4["المهندسون"]
-    w_skilled = p_wages_sec4["العمال الماهرون"]
-    
-    cost_excav = vol_excav * 8000
-    cost_conc = total_concrete * (p_cement * 0.35 + 35000)
-    cost_steel = steel_tons * p_steel
-    cost_brick = (total_bricks / 1000.0) * p_brick
-    cost_tile = floor_area * p_tile
-    cost_finish = finish_area * p_paint * 2
-    
-    cost_materials_total = cost_excav + cost_conc + cost_steel + cost_brick + cost_tile + cost_finish
-    cost_labor_total = (w_eng * 30) + (w_skilled * 60 * 2)
+    # 2. الحسابات التلقائية (تتم برمجياً بدون تداخل بين الفقرات)
+    final_rows = []
+    grand_total = 0
 
-    grand_total_project = cost_materials_total + cost_labor_total
+    for index, row in edited_df.iterrows():
+        # معادلة حساب الكمية تتغير حسب الوحدة
+        if row["الوحدة"] in ["m3", "ton"]: 
+            qty = (row["العدد"] * row["الطول"] * row["العرض"] * row["الارتفاع"]) - row["خصم"]
+        elif row["الوحدة"] == "m2":
+            qty = (row["العدد"] * row["الطول"] * row["الارتفاع"]) - row["خصم"]
+        else:
+            qty = (row["العدد"] * row["الطول"]) - row["خصم"]
+            
+        qty = max(0, qty) # لتجنب الأرقام السالبة
+        
+        mat_total = qty * row["كلفة المواد"]
+        lab_total = qty * row["كلفة العمل"]
+        total = mat_total + lab_total
+        grand_total += total
+        
+        final_rows.append({
+            "الفقرة": row["الفقرة"],
+            "الكمية الصافية": round(qty, 2),
+            "إجمالي المواد": f"{int(mat_total):,}",
+            "إجمالي العمل": f"{int(lab_total):,}",
+            "الكلفة الكلية": f"{int(total):,}"
+        })
 
-    # 4. جدول BoQ المعتمد بالتسمية الدقيقة
-    boq_df = pd.DataFrame({
-        "ت": [1, 2, 3, 4, 5, 6, 7],
-        "مرحلة العمل": [
-            "حفر الأساسات والتأسيس",
-            "صب الخرسانة المسلحة (أساس + أعمدة + سقف + رباط مائي)",
-            f"حديد التسليح الإجمالي ({steel_tons:.2f} طن)",
-            "البناء بالطابوق للجدران والستارة",
-            "تغليف الأرضيات بالكاشي",
-            "اللبخ والصبغ والإنهاءات",
-            "أجور الكوادر الهندسية والعمالة"
-        ],
-        "الكمية / المساحة": [
-            f"{vol_excav:.1f} م3", f"{total_concrete:.1f} م3", f"{steel_tons:.2f} طن",
-            f"{total_bricks:,.0f} طابوقة", f"{floor_area:.1f} م2", f"{finish_area:.1f} م2", "شامل الطاقم"
-        ],
-        "كلفة المواد (مربوطة بالتنبؤ)": [
-            f"{cost_excav:,.0f} د.ع", f"{cost_conc:,.0f} د.ع", f"{cost_steel:,.0f} د.ع",
-            f"{cost_brick:,.0f} د.ع", f"{cost_tile:,.0f} د.ع", f"{cost_finish:,.0f} د.ع", "-"
-        ],
-        "كلفة العمل": [
-            "150,000 د.ع", "800,000 د.ع", "450,000 د.ع", "900,000 د.ع", "350,000 د.ع", "600,000 د.ع", f"{cost_labor_total:,.0f} د.ع"
-        ],
-        "الكلفة الكلية": [
-            f"{cost_excav + 150000:,.0f} د.ع",
-            f"{cost_conc + 800000:,.0f} د.ع",
-            f"{cost_steel + 450000:,.0f} د.ع",
-            f"{cost_brick + 900000:,.0f} د.ع",
-            f"{cost_tile + 350000:,.0f} د.ع",
-            f"{cost_finish + 600000:,.0f} د.ع",
-            f"{cost_labor_total:,.0f} د.ع"
-        ]
-    })
-
-    st.markdown("---")
-    st.markdown("##### 📜 جدول الكميات والتكلفة الشاملة للمشروع (BoQ)")
-    st.table(boq_df)
-    st.success(f"💰 **الكلفة الكلية التقديرية للمشروع الكامل: {grand_total_project:,.0f} دينار عراقي**")
+    # 3. عرض جدول النتائج النهائي
+    st.markdown("#### 📊 ثانياً: جدول النتائج والكلف (يُحدّث آلياً)")
+    st.dataframe(pd.DataFrame(final_rows), use_container_width=True)
+    
+    st.success(f"💰 الكلفة الإجمالية التقريبية للمشروع: {grand_total:,.0f} دينار عراقي")
