@@ -3,22 +3,20 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# 1. إعدادات الصفحة والأيقونة (في البداية دائماً)
+# 1. إعدادات الصفحة والأيقونة
 st.set_page_config(
     page_title="مشروع المهندس سجاد 2026 - المنظومة المتكاملة",
     page_icon="logo.jpg",
     layout="wide"
 )
 
-# 2. إظهار اللوجو في أعلى التطبيق
+# 2. إظهار اللوجو والعنوان
 st.image("logo.jpg", use_container_width=True)
-
-# 3. عنوان المنظومة
 st.title("📊 مشروع المهندس سجاد 2026 - المنظومة الهندسية المتكاملة")
 st.markdown("##### 👨‍🏫 إشراف: الأستاذ علي خليل | 💻 إعداد وبرمجة: المهندس سجاد وفريق العمل")
 st.markdown("---")
 
-# إنشاء الشيتات الأربعة بالتصنيف المطلوب
+# 3. إنشاء الشيتات الأربعة
 tab1, tab2, tab3, tab4 = st.tabs([
     "📈 البيانات التاريخية لأسعار المواد",
     "👷 البيانات التاريخية لأجور العمال",
@@ -27,7 +25,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ==========================================
-# 🟢 الشيت الأول: أسعار المواد التاريخية (مضاف لها الكهرباء والماء)
+# 🟢 الشيت الأول: البيانات التاريخية لأسعار المواد
 # ==========================================
 with tab1:
     st.header("📈 البيانات التاريخية لأسعار المواد (الأشهر 1 إلى 9)")
@@ -50,7 +48,7 @@ with tab1:
     st.dataframe(df_materials_history, use_container_width=True)
 
 # ==========================================
-# 🟢 الشيت الثاني: أجور الكوادر والعمال (مضاف لها الكهربائي والسباك)
+# 🟢 الشيت الثاني: البيانات التاريخية لأجور العمال
 # ==========================================
 with tab2:
     st.header("👷 البيانات التاريخية لأجور الكوادر والعمال (الأشهر 1 إلى 9)")
@@ -67,7 +65,7 @@ with tab2:
     st.dataframe(df_labor_history, use_container_width=True)
 
 # ==========================================
-# 🟢 الشيت الثالث: التحليلات البيانية (تضمن كافة المواد بما فيها الكهرباء والماء)
+# 🟢 الشيت الثالث: التحليلات والرسوم البيانية
 # ==========================================
 with tab3:
     st.header("📊 التحليلات البيانية ورسوم أسعار المواد")
@@ -76,13 +74,12 @@ with tab3:
     st.plotly_chart(fig_mat, use_container_width=True)
 
 # ==========================================
-# 🟢 الشيت الرابع: حساب الكميات والتكاليف (شامل ومستقل تماماً لكل فقرة)
+# 🟢 الشيت الرابع: حساب الكميات والتكاليف (الشيت الرابع النهائي)
 # ==========================================
 with tab4:
-    st.header("📋 الشيت الرابع: جدول الكميات والتكلفة الشامل")
-    st.info("💡 يمكنك تعديل أبعاد وخصومات كل فقرة بشكل مستقل تماماً دون التأثير على باقي الفقرات:")
+    st.header("📋 الشيت الرابع: جدول الكميات والتكلفة الشامل (مطابق للشيت 4)")
+    st.info("💡 يمكنك تعديل أبعاد وخصومات كل فقرة بشكل مستقل تماماً عبر القوائم التشاركية الأدناه:")
 
-    # القائمة الكاملة للفقرات شاملة الكهرباء والسباكة والمياه
     items_fourth = [
         {"name": "حفر الأساسات", "unit": "m3", "l": 48.0, "w": 0.6, "h": 1.0, "disc": 0.0, "mat_rate": 0, "labor_rate": 6250, "cadre": "العمال غير الماهرين"},
         {"name": "صب أسس الخرسانة", "unit": "m3", "l": 48.0, "w": 0.6, "h": 0.4, "disc": 0.0, "mat_rate": 71000, "labor_rate": 17500, "cadre": "العمال شبه الماهرين"},
@@ -97,33 +94,33 @@ with tab4:
     ]
 
     calculated_rows = []
+    grand_total_num = 0.0
 
-    # التحكم في مدخلات كل فقرة بشكل فردي تماماً
     for item in items_fourth:
         with st.expander(f"📌 مدخلات فقرة: {item['name']}", expanded=False):
             c1, c2, c3, c4 = st.columns(4)
             
             with c1:
-                l_val = st.number_input(f"الطول / العدد - {item['name']}", value=float(item['l']), step=0.5, key=f"s4_l_{item['name']}")
+                l_val = st.number_input(f"الطول / العدد - {item['name']}", value=float(item['l']), step=0.5, key=f"v4_l_{item['name']}")
             
             with c2:
                 if item["unit"] == "m3":
-                    w_val = st.number_input(f"العرض (م) - {item['name']}", value=float(item['w']), step=0.05, key=f"s4_w_{item['name']}")
+                    w_val = st.number_input(f"العرض (م) - {item['name']}", value=float(item['w']), step=0.05, key=f"v4_w_{item['name']}")
                 else:
                     w_val = 1.0
-                    st.text_input(f"العرض - {item['name']}", value="سطحي (غير مطلوب)", disabled=True, key=f"s4_dis_w_{item['name']}")
+                    st.text_input(f"العرض - {item['name']}", value="سطحي (غير مطلوب)", disabled=True, key=f"v4_dis_w_{item['name']}")
                     
             with c3:
                 if item["unit"] in ["m3", "m2"]:
-                    h_val = st.number_input(f"السمك / الارتفاع (م) - {item['name']}", value=float(item['h']), step=0.1, key=f"s4_h_{item['name']}")
+                    h_val = st.number_input(f"السمك / الارتفاع (م) - {item['name']}", value=float(item['h']), step=0.1, key=f"v4_h_{item['name']}")
                 else:
                     h_val = 1.0
-                    st.text_input(f"الارتفاع - {item['name']}", value="غير مطلوب", disabled=True, key=f"s4_dis_h_{item['name']}")
+                    st.text_input(f"الارتفاع - {item['name']}", value="غير مطلوب", disabled=True, key=f"v4_dis_h_{item['name']}")
                 
             with c4:
-                disc_val = st.number_input(f"الخصم (الفتحات) - {item['name']}", value=float(item['disc']), step=0.25, key=f"s4_disc_{item['name']}")
+                disc_val = st.number_input(f"الخصم (الفتحات) - {item['name']}", value=float(item['disc']), step=0.25, key=f"v4_disc_{item['name']}")
 
-        # حساب الكمية الصافية
+        # حساب الكميات الصافية
         if item["unit"] == "m3":
             gross_qty = l_val * w_val * h_val
         elif item["unit"] == "m2":
@@ -133,10 +130,12 @@ with tab4:
             
         net_qty = max(0.0, gross_qty - disc_val)
         
-        # حساب التكاليف
         mat_cost = net_qty * item["mat_rate"]
         labor_cost = net_qty * item["labor_rate"]
         total_cost = mat_cost + labor_cost
+        
+        # إضافة التكلفة للإجمالي الكلي
+        grand_total_num += total_cost
         
         calculated_rows.append({
             "تفاصيل الفقرة الهندسية": item["name"],
@@ -148,25 +147,19 @@ with tab4:
             "كلفة المواد (مستقبلاً)": f"{int(mat_cost):,}",
             "الكادر المطلوب": item["cadre"],
             "كلفة العمل (مستقر)": f"{int(labor_cost):,}",
-            "الكلفة الكلية المتوقعة": total_cost
+            "الكلفة الكلية المتوقعة (دينار)": f"{int(total_cost):,}"
         })
 
     # تحويل البيانات لجدول DataFrame
     df_s4 = pd.DataFrame(calculated_rows)
 
-    # حساب مجموع الكلفة التقديرية الكلية
-    grand_total_num = sum(row["الكلفة الكلية المتوقعة"] for row in calculated_rows)
-
-    # تنسيق عمود الكلفة الكلية المتوقعة
-    df_s4["الكلفة الكلية المتوقعة"] = df_s4["الكلفة الكلية المتوقعة"].apply(lambda x: f"{int(x):,}")
-
     st.markdown("---")
-    st.subheader("📋 شيت جدول الكميات والتكاليف الإجمالية (مطابق لشيت 4)")
+    st.subheader("📋 شيت جدول الكميات والتكاليف الإجمالية")
     
-    # عرض الجدول مطابق للصورة
+    # عرض الجدول
     st.dataframe(df_s4, use_container_width=True)
 
-    # الشريط الأخضر النهائي المطلوب للمجموع الكلي بالدينار العراقي
+    # الشريط الأخضر السفلي
     st.markdown(
         f"""
         <div style="background-color: #1b5e20; padding: 16px; border-radius: 6px; text-align: center; color: white; font-size: 22px; font-weight: bold; font-family: sans-serif; margin-top: 15px;">
